@@ -1,8 +1,0 @@
-Controllers is for user requests. bali mga interface logic lang siya tsaka for the authcontroller is the login/logout logic.
-
-since cybersex tau pwede uli tayo mag implement ng hashing sa mga password para di siya naka plaintext sa database.
-
-AdminController.php for Admin interface logic while voter interface logic is ung VoterController.php
-AuthController.php is for login/logout logic which we will implement ng mga security algorithms or some shit ewan ko.
-
-dito manggagaling ung get/post ng user requests
