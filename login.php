@@ -19,8 +19,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($execQuery) {
         $_SESSION['loggedin'] = true;
         $_SESSION['username'] = $execQuery['username'];
-        header("Location: dashboard.php");
-        exit;
+        if ($execQuery['user_type'] == 'admin') {
+           header("Location: dashboard.php");
+            exit;
+        } else {
+            header("Location: user_dashboard.php");
+            exit;
+        }
     } else {
         $error = "Invalid username or password.";
     }
