@@ -1,8 +1,18 @@
 <?php
     require_once '../includes/db_connect.php';
-    require_once '../includes/session_manager.php';
     session_start();
-    $sessionManager->requireLogin();
+    function requireLogin() {
+        if (empty($_SESSION['loggedin']) || !isset($_SESSION['user_type'])) {
+            header("Location: ../login.php");
+            exit;
+        }
+        if ($_SESSION['user_type'] !== 'admin') {
+            header("Location: ../login.php");
+            exit;
+        }
+    }
+
+    requireLogin();
     
 ?>
 

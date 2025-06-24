@@ -1,14 +1,51 @@
 <?php
+// for secure session starting or resuming an existing session.
+session_start();
 require_once 'includes/db_connect.php';
 require_once 'includes/session_manager.php';
 
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    // maglalagay me ng input validation here - nathan
+    // ung ?? parang mag dedefault siya sa empty string if walang set password.
+    $username = trim($_POST['username']);
+    $password = $_POST['password'] ?? '';
+
+    // pwede gamitin like thiss para may try catch siyaa tsaka di ko mapagana ung commented out aueueueue, i sorry gwen
+    if ($username && $password){
+        try{
+            $stmt = $pdo -> prepare("SELECT id, username, pass_hash, user_type, is_active FROM users WHERE username = :username LIMIT 1");
+            $stmt->execute(['username' => $username]);
+            $user = $stmt->fetch();
+            if ($user && $user['is_active']){
+                if (password_verify($password, $user['pass_hash'])) {
+                    session_regenerate_id(true);
+                    $_SESSION['loggedin'] = true;
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['user_type'] = $user['user_type'];
+                    if ($user['user_type'] == 'admin') {
+                        header("Location: admin/");
+                        exit;
+                    } else {
+                        header("Location: voter/");
+                        exit;
+                    }
+                }
+            }
+                $error = "Invalid username or password.";
+        } catch (PDOException $e) {
+            $error = "Database error.";
+        }
+    } else {
+        $error = "Please enter both username and password.";
+    }
+
 
     // Use prepared statements for security
+        
+    /*
     $stmt = $pdo->prepare("SELECT id, username, pass_hash, user_type FROM users WHERE username = :username AND pass_hash = sha1(:password)");
     $stmt->execute([
         'username' => $username,
@@ -20,15 +57,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION['loggedin'] = true;
         $_SESSION['username'] = $execQuery['username'];
         if ($execQuery['user_type'] == 'admin') {
-           header("Location: dashboard.php");
+           header("Location: admin/");
             exit;
         } else {
-            header("Location: user_dashboard.php");
+            header("Location: voter/");
             exit;
         }
     } else {
         $error = "Invalid username or password.";
-    }
+    }*/
 }
 ?>
 
@@ -48,11 +85,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <h1>PHPStacked</h1>
         </div>
         <div class="login-container">
-            <h2>Admin Login</h2>
+            <h2>Login</h2>
             <form action="" method="post">
-                <input type="text" id="username" name="username" placeholder="username" required>
+                <input type="text" id="username" name="username" placeholder="Username" required>
                 <br>
-                <input type="password" id="password" name="password" placeholder="password" required>
+                <input type="password" id="password" name="password" placeholder="Password" required>
                 <br>
                 <button type="submit" name="submit">Login</button>
             </form>
