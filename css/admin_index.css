@@ -1,0 +1,76 @@
+body {
+    background: #f5f6fa;                /* Light background for the whole page */
+    margin: 0;                          /* Remove default margin */
+    font-family: 'Segoe UI', Arial, sans-serif; /* Modern, clean font */
+    color: #1d2b20;                     /* Main text color */
+}
+
+h1 {
+    margin-top: 40px;                   /* Space above the heading */
+    text-align: center;                 /* Center the heading */
+    color: #27ae60;                     /* Green heading color */
+    font-size: 2.2rem;                  /* Large heading */
+    letter-spacing: 1px;                /* Slightly spaced letters */
+}
+
+p {
+    text-align: center;                 /* Center the paragraph */
+    font-size: 1.1rem;                  /* Slightly larger text */
+    color: #1d2b20;                     /* Main text color */
+    margin-bottom: 32px;                /* Space below paragraph */
+}
+
+.dashboard-container {
+    max-width: 900px;                   /* Limit dashboard width */
+    margin: 32px auto;                  /* Center dashboard with margin */
+    background: #fff;                   /* White background for dashboard */
+    border-radius: 16px;                /* Rounded corners */
+    box-shadow: 0 2px 12px rgba(39, 174, 96, 0.08); /* Subtle green shadow */
+    padding: 32px 24px;                 /* Padding inside dashboard */
+}
+
+.dashboard-list {
+    display: flex;                      /* Use flexbox for layout */
+    flex-wrap: wrap;                    /* Allow items to wrap to next line */
+    gap: 24px;                          /* Space between items */
+    justify-content: center;            /* Center items horizontally */
+    margin: 0;                          /* Remove default margin */
+    padding: 0;                         /* Remove default padding */
+    list-style: none;                   /* Remove bullet points */
+}
+
+.dashboard-list li {
+    background: #27ae60;                /* Green background for each item */
+    color: #f5f6fa;                     /* Light text color */
+    border-radius: 12px;                /* Rounded corners for items */
+    padding: 32px 32px 24px 32px;       /* Extra top padding for icon */
+    min-width: 180px;                   /* Minimum width for each item */
+    text-align: center;                 /* Center text and icon */
+    font-size: 1.1rem;                  /* Slightly larger text */
+    font-weight: 600;                   /* Bold text */
+    box-shadow: 0 1px 4px rgba(39, 174, 96, 0.10); /* Subtle shadow */
+    transition: background 0.2s, color 0.2s, transform 0.2s; /* Smooth hover */
+    cursor: pointer;                    /* Pointer cursor on hover */
+    display: flex;                      /* Flexbox for vertical layout */
+    flex-direction: column;             /* Stack icon above text */
+    align-items: center;                /* Center content horizontally */
+    justify-content: center;            /* Center content vertically */
+}
+
+.dashboard-list li:hover {
+    background: #abff2e;                /* Bright green on hover */
+    color: #1d2b20;                     /* Dark text on hover */
+    transform: translateY(-4px) scale(1.04); /* Slight lift and scale on hover */
+}
+
+.dashboard-list i {
+    margin: 0 0 12px 0;                 /* Space below icon */
+    font-size: 2.5em;                   /* Large icon size */
+    display: block;                     /* Block display for icon */
+}
+
+.dashboard-list span {
+    display: block;                     /* Block display for label */
+    margin-top: 0;                      /* No extra space above label */
+    font-size: 1.08em;                  /* Slightly larger label text */
+}
