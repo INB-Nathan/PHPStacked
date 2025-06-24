@@ -4,7 +4,7 @@
  * 
  */
 $host = 'localhost';
-$dbname = 'phpstacked_db';
+$dbname = 'PHPStacked_DB';
 $username = 'root';
 $password = '';
 
@@ -13,11 +13,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-    
-    $pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
 } catch (PDOException $e) {
-    error_log("Database connection error: " . $e->getMessage());
-
-    die("Connection Failed.");
+    die("Database connection failed: " . $e->getMessage());
 }
 ?>
