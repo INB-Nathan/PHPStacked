@@ -30,11 +30,6 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_username ON users(username);
-CREATE INDEX idx_email ON users(email);
-CREATE INDEX idx_session_id ON users(session_id);
-CREATE INDEX idx_user_type ON users(user_type);
-
 CREATE TABLE candidates (
     id INT PRIMARY KEY AUTO_INCREMENT,
     election_id INT NOT NULL,
@@ -52,10 +47,6 @@ CREATE TABLE candidates (
     FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX idx_election_id ON candidates(election_id);
-CREATE INDEX idx_position ON candidates(position);
-CREATE INDEX idx_party_name ON candidates(party_name);
-
 CREATE TABLE votes (
     id INT PRIMARY KEY AUTO_INCREMENT,
     election_id INT NOT NULL,
@@ -70,58 +61,3 @@ CREATE TABLE votes (
     FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
-
-CREATE INDEX idx_election_id_votes ON votes(election_id);
-CREATE INDEX idx_candidate_id_votes ON votes(candidate_id);
-CREATE INDEX idx_user_id_votes ON votes(user_id);
-CREATE INDEX idx_voter_ip ON votes(voter_ip);
-CREATE INDEX idx_vote_timestamp ON votes(vote_timestamp);
-
-ALTER TABLE votes ADD CONSTRAINT unique_user_vote UNIQUE (election_id, user_id, candidate_id);
-ALTER TABLE votes ADD CONSTRAINT unique_anonymous_vote UNIQUE (election_id, voter_name, voter_ip, candidate_id);
-
-DELIMITER //
-
-CREATE TRIGGER update_vote_count_after_insert
-AFTER INSERT ON votes
-FOR EACH ROW
-BEGIN
-    UPDATE candidates 
-    SET vote_count = vote_count + 1 
-    WHERE id = NEW.candidate_id;
-END//
-
-CREATE TRIGGER update_vote_count_after_delete
-AFTER DELETE ON votes
-FOR EACH ROW
-BEGIN
-    UPDATE candidates 
-    SET vote_count = vote_count - 1 
-    WHERE id = OLD.candidate_id AND vote_count > 0;
-END//
-
-DELIMITER ;
-
-CREATE VIEW active_elections AS
-SELECT * FROM elections 
-WHERE status = 'active' 
-AND NOW() BETWEEN start_date AND end_date;
-
-CREATE VIEW election_results AS
-SELECT 
-    e.id as election_id,
-    e.title as election_title,
-    c.id as candidate_id,
-    c.name as candidate_name,
-    c.position,
-    c.party_name,
-    c.vote_count,
-    ROUND((c.vote_count * 100.0 / NULLIF(total_votes.total, 0)), 2) as percentage
-FROM candidates c
-JOIN elections e ON c.election_id = e.id
-LEFT JOIN (
-    SELECT election_id, SUM(vote_count) as total
-    FROM candidates
-    GROUP BY election_id
-) total_votes ON c.election_id = total_votes.election_id
-ORDER BY c.election_id, c.position, c.vote_count DESC;
