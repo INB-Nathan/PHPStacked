@@ -2,26 +2,28 @@
 require_once '../includes/db_connect.php';
 require_once '../includes/session_manager.php';
 
-
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    //Supposed to be validating credentials against the database
-    // $query = $db->query("SELECT `id`, `username`, `email`, `pass_hash`, `full_name`, `user_type`, `is_active`, `last_login`, `session_id`, `session_expires`, `ip_address`, `created_at`, `updated_at` FROM `users` WHERE username = '$username' AND password_hash = sha1('$password');");
+    // Use prepared statements for security
+    $stmt = $pdo->prepare("SELECT id, username, pass_hash, user_type FROM users WHERE username = :username AND pass_hash = sha1(:password)");
+    $stmt->execute([
+        'username' => $username,
+        'password' => $password
+    ]);
+    $execQuery = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // $execQuery = $query->fetch_assoc();
-
-    // if ($execQuery) {
-    //     $_SESSION['loggedin'] = true;
-    //     $_SESSION['username'] = $execQuery['username'];
-    //     header("Location: dashboard.php");
-    //     exit;
-    // } else {
-    //     $error = "Invalid username or password.";
-    // }
+    if ($execQuery) {
+        $_SESSION['loggedin'] = true;
+        $_SESSION['username'] = $execQuery['username'];
+        header("Location: dashboard.php");
+        exit;
+    } else {
+        $error = "Invalid username or password.";
+    }
 }
 ?>
 
@@ -31,7 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/login.css">
     <title>Login Page</title>
 </head>
 
