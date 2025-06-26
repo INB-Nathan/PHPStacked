@@ -1,0 +1,137 @@
+/* Party Management Styles - Follows admin_header.css and admin_index.css look */
+
+body {
+    background: #f5f6fa;
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #1d2b20;
+}
+
+h1 {
+    margin-top: 40px;
+    text-align: center;
+    color: #27ae60;
+    font-size: 2.2rem;
+    letter-spacing: 1px;
+}
+
+h2 {
+    margin-top: 32px;
+    text-align: center;
+    color: #27ae60;
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+}
+
+.add-party-form {
+    margin: 32px auto 24px auto;
+    padding: 24px 28px 18px 28px;
+    background: #fff;
+    border-radius: 16px;
+    max-width: 440px;
+    box-shadow: 0 2px 12px rgba(39, 174, 96, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.add-party-form form {
+    width: 100%;
+}
+
+.form-row {
+    margin-bottom: 18px;
+}
+
+.add-party-form input[type="text"],
+.add-party-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e3e3e3;
+    border-radius: 8px;
+    font-size: 1.07em;
+    background: #f5f6fa;
+    color: #1d2b20;
+    transition: border-color 0.2s;
+}
+
+.add-party-form input[type="text"]:focus,
+.add-party-form textarea:focus {
+    border-color: #27ae60;
+    outline: none;
+}
+
+.add-party-form button[type="submit"] {
+    background: #27ae60;
+    color: #f5f6fa;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+
+.add-party-form button[type="submit"]:hover {
+    background: #abff2e;
+    color: #1d2b20;
+    transform: translateY(-2px) scale(1.04);
+}
+
+.msg-error {
+    color: #e74c3c;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.msg-success {
+    color: #27ae60;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.party-table {
+    width: 100%;
+    max-width: 900px;
+    margin: 32px auto 64px auto;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(39, 174, 96, 0.08);
+    overflow: hidden;
+}
+
+.party-table th,
+.party-table td {
+    border: 1px solid #e3e3e3;
+    padding: 12px 18px;
+    text-align: left;
+    font-size: 1.06em;
+}
+
+.party-table th {
+    background: #f8f8f8;
+    color: #27ae60;
+    font-weight: 700;
+    font-size: 1.08em;
+}
+
+.party-table tbody tr:nth-child(even) {
+    background: #f5f6fa;
+}
+
+.party-table tbody tr:hover {
+    background: #e9faef;
+    transition: background 0.18s;
+}
+
+@media (max-width: 600px) {
+    .add-party-form, .party-table {
+        max-width: 99vw;
+        font-size: 0.98em;
+    }
+    .party-table th, .party-table td {
+        padding: 8px 6px;
+    }
+}

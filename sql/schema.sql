@@ -11,7 +11,7 @@ CREATE TABLE elections (
     max_votes_per_user INT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    -- CONSTRAINT chk_election_dates CHECK (end_date > start_date) -- Remove for MySQL < 8
+    CONSTRAINT chk_election_dates CHECK (end_date > start_date)
 );
 
 CREATE TABLE users (
@@ -30,12 +30,18 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+CREATE TABLE parties (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description VARCHAR(255) DEFAULT NULL
+);
+
 CREATE TABLE candidates (
     id INT PRIMARY KEY AUTO_INCREMENT,
     election_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     position VARCHAR(255) NOT NULL,
-    party_name VARCHAR(255) NULL,
+    party_id INT NULL,
     bio TEXT NULL,
     photo VARCHAR(255) NULL,
     platform TEXT NULL,
@@ -43,8 +49,8 @@ CREATE TABLE candidates (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    -- CONSTRAINT chk_vote_count CHECK (vote_count >= 0), -- Remove for MySQL < 8
-    FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (party_id) REFERENCES parties(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 CREATE TABLE votes (
