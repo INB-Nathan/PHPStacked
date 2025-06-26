@@ -14,5 +14,6 @@ session_start();
     <?php adminHeader('candidates'); ?>
     <h1>Candidate Management</h1>
     <!-- Candidate management content goes here -->
+    <!-- si dion dito -->
 </body>
 </html>
