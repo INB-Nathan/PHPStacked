@@ -15,7 +15,6 @@ body {
     }
 
 .container{
-    /* border: solid black 2px; for reference */
     display: flex;
     flex-direction: row;
     justify-content: space-evenly;
@@ -65,4 +64,10 @@ body {
 
 .login-container button:hover {
       background-color: #45a049;
+    }
+
+.error-message {
+      color: red;
+      margin-top: 10px;
+      font-size: 14px;
     }

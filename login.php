@@ -1,5 +1,4 @@
 <?php
-// for secure session starting or resuming an existing session.
 session_start();
 require_once 'includes/db_connect.php';
 require_once 'includes/session_manager.php';
@@ -7,12 +6,10 @@ require_once 'includes/session_manager.php';
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // maglalagay me ng input validation here - nathan
-    // ung ?? parang mag dedefault siya sa empty string if walang set password.
     $username = trim($_POST['username']);
     $password = $_POST['password'] ?? '';
 
-    // pwede gamitin like thiss para may try catch siyaa tsaka di ko mapagana ung commented out aueueueue, i sorry gwen
+   
     if ($username && $password){
         try{
             $stmt = $pdo -> prepare("SELECT id, username, pass_hash, user_type, is_active FROM users WHERE username = :username LIMIT 1");
@@ -42,30 +39,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error = "Please enter both username and password.";
     }
 
-
-    // Use prepared statements for security
-        
-    /*
-    $stmt = $pdo->prepare("SELECT id, username, pass_hash, user_type FROM users WHERE username = :username AND pass_hash = sha1(:password)");
-    $stmt->execute([
-        'username' => $username,
-        'password' => $password
-    ]);
-    $execQuery = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($execQuery) {
-        $_SESSION['loggedin'] = true;
-        $_SESSION['username'] = $execQuery['username'];
-        if ($execQuery['user_type'] == 'admin') {
-           header("Location: admin/");
-            exit;
-        } else {
-            header("Location: voter/");
-            exit;
-        }
-    } else {
-        $error = "Invalid username or password.";
-    }*/
 }
 ?>
 
@@ -94,7 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <button type="submit" name="submit">Login</button>
             </form>
             <div class="error-message">
-                <?php echo $error; ?>
+                <p><?php echo $error; ?></p>
             </div>
         </div>
     </div>

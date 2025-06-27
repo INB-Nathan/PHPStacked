@@ -1,0 +1,100 @@
+/* Container for the add voter form */
+.add-container {
+    margin: 32px auto 24px auto;
+    padding: 24px 40px 24px 24px; /* Top, Right, Bottom, Left */
+    background: #fff;
+    border-radius: 16px;
+    max-width: 460px;
+    box-shadow: 0 2px 12px rgba(39, 174, 96, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.add-container form {
+    width: 100%;
+    margin: 0 auto;   /* Center the form */
+}
+
+/* Container for the voters table */
+.data-container {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 24px 32px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    margin-bottom: 32px;
+}
+
+/* Table styling */
+.data-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-container th, .data-container td {
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.data-container th {
+    background: #f1f1f1;
+}
+
+.data-container tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+/* Form styling */
+.add-container label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+}
+
+.add-container input[type="text"],
+.add-container input[type="email"],
+.add-container input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e3e3e3;
+    border-radius: 8px;
+    font-size: 1.07em;
+    background: #f5f6fa;
+    color: #1d2b20;
+    transition: border-color 0.2s;
+    margin-top: 4px;
+}
+
+.add-container input[type="text"]:focus,
+.add-container input[type="email"]:focus,
+.add-container input[type="password"]:focus {
+    border-color: #27ae60;
+    outline: none;
+}
+
+.add-container button[type="submit"] {
+    background: #27ae60;
+    color: #f5f6fa;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, transform 0.2s;
+    margin-top: 16px;
+}
+
+.add-container button[type="submit"]:hover {
+    background: #abff2e;
+    color: #1d2b20;
+    transform: translateY(-2px) scale(1.02);
+}
+
+.form-error {
+    color: #c0392b;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
