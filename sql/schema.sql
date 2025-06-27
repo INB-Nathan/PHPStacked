@@ -10,7 +10,7 @@ CREATE TABLE elections (
     status ENUM('upcoming', 'active', 'completed', 'cancelled') DEFAULT 'upcoming',
     max_votes_per_user INT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT chk_election_dates CHECK (end_date > start_date)
 );
 
