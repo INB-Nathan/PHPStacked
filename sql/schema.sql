@@ -30,6 +30,8 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+INSERT INTO `users` (`id`, `username`, `email`, `pass_hash`, `full_name`, `user_type`, `is_active`, `last_login`, `session_id`, `session_expires`, `ip_address`, `created_at`, `updated_at`) VALUES (NULL, 'admin', 'admin@account.com', '$2y$10$m82y2FF7itrlvuuHYdIXLec62Bs.BHkBfMSPdAluzlMogSBGj7gT.', 'Admin', 'admin', '1', NULL, NULL, NULL, NULL, '2025-06-27 21:55:52', '2025-06-27 21:56:33')
+
 CREATE TABLE parties (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
