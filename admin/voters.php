@@ -93,17 +93,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($voters) {
             echo "<table>";
-            echo "<tr><th>ID</th><th>Name</th><th>Username</th><th>Email</th><th>Action</th></tr>";
+            echo "<tr><th>Name</th><th>Username</th><th>Email</th><th>Action</th></tr>";
             foreach ($voters as $voter) {
                 if ($voter['user_type'] !== 'voter') {
                     continue; 
                 }
                 echo "<tr>";
-                echo "<td>" . $voter['id'] . "</td>";
                 echo "<td>" . $voter['full_name'] . "</td>";
                 echo "<td>" . $voter['username'] . "</td>";
                 echo "<td>" . $voter['email'] . "</td>";
-                echo "<td><a href='voters.php?delete=" . $voter['id'] . "' onclick=\"return confirm('Are you sure you want to delete this voter?');\">Delete</a></td>";
+                echo "<td><a href='voters.php?delete=" . $voter['id'] . "' onclick=\"return confirm('Are you sure you want to voter " . $voter['full_name'] . "?');\">Delete</a></td>";
                 echo "</tr>";
             }
             echo "</table>";
