@@ -1,7 +1,5 @@
 <?php
-// Need i-require ang admin_header for admin page header and session check
 require_once '../includes/admin_header.php';
-// Need i-require ang db_connect for database connection
 require_once '../includes/db_connect.php';
 // Need i-require ang functions.php for CRUD (Create, Read, Update, Delete) functions ng candidates
 require_once '../includes/functions.php'; // Include the functions file
@@ -9,7 +7,7 @@ require_once '../includes/functions.php'; // Include the functions file
 // Start the session para magamit ang session variables
 session_start();
 
-// Siguraduhin na ang user ay naka-login at admin. If not, i-redirect sa login page.
+// Make sure na ang user ay naka-login at admin. If not, i-redirect sa login page.
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: ../login.php");
     exit;
@@ -70,8 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     // Define a default election ID for now.
-    // IMPORTANT: In a real app, you'd likely select this from a dropdown
-    // or associate it with the active election.
     $default_election_id = 1; 
 
     // If the action is 'add' or 'update'
@@ -220,7 +216,7 @@ if (is_string($candidates)) {
     <title>Candidate Management</title>
     <link rel="stylesheet" href="../css/admin_header.css">
     <link rel="stylesheet" href="../css/admin_index.css">
-    <link rel="stylesheet" href="../css/candidates.css"> <!-- New link to candidates.css -->
+    <link rel="stylesheet" href="../css/candidates.css">
 </head>
 <body>
     <?php adminHeader('candidates'); ?>
