@@ -1,0 +1,198 @@
+/* Container for the entire content */
+.container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 20px auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+/* Styling for h1 heading */
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+/* Styling for action buttons container */
+.action-buttons {
+    text-align: right;
+    margin-bottom: 20px;
+}
+/* Styling for links in action buttons */
+.action-buttons a {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    display: inline-block; /* Ensure it respects margin-bottom */
+}
+/* Hover effect for action buttons */
+.action-buttons a:hover {
+    background-color: #0056b3;
+}
+/* Styling for the candidates table */
+.candidates-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+/* Styling for table headers and cells */
+.candidates-table th,
+.candidates-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+/* Styling for table headers */
+.candidates-table th {
+    background-color: #f2f2f2;
+    color: #333;
+    font-weight: bold;
+}
+/* Alternate row background color */
+.candidates-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+/* Hover effect for table rows */
+.candidates-table tr:hover {
+    background-color: #f1f1f1;
+}
+/* Styling for candidate photo in the table */
+.candidates-table .candidate-photo {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+/* Styling for action links/buttons in the table */
+.candidates-table .actions a,
+.candidates-table .actions button {
+    display: inline-block;
+    padding: 6px 10px;
+    margin-right: 5px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+}
+/* Styling for Edit button */
+.candidates-table .actions .edit-btn {
+    background-color: #ffc107;
+    color: white;
+}
+/* Hover effect for Edit button */
+.candidates-table .actions .edit-btn:hover {
+    background-color: #e0a800;
+}
+/* Styling for Delete button */
+.candidates-table .actions .delete-btn {
+    background-color: #dc3545;
+    color: white;
+}
+/* Hover effect for Delete button */
+.candidates-table .actions .delete-btn:hover {
+    background-color: #c82333;
+}
+/* Styling for success/error messages */
+.message {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    text-align: center;
+}
+/* Styling for success message */
+.message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+/* Styling for error message */
+.message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Form specific styles (reused from previous add/edit files) */
+/* Container for the form */
+.form-container {
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+/* Styling for h2 heading of the form */
+.form-container h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+/* Styling for each form group (label + input) */
+.form-group {
+    margin-bottom: 15px;
+}
+/* Styling for labels */
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+    font-weight: bold;
+}
+/* Styling for text input, textarea, and file input */
+.form-group input[type="text"],
+.form-group textarea,
+.form-group input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box; /* Ensures padding does not increase total width */
+}
+/* Styling for textarea resize */
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+/* Styling for image preview in the form */
+.form-group img {
+    max-width: 150px;
+    height: auto;
+    display: block;
+    margin-top: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+/* Styling for buttons in the form */
+.form-actions {
+    text-align: center;
+    margin-top: 20px;
+}
+/* Default styling for button */
+.form-actions button {
+    background-color: #007bff; /* Primary color for add/update */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+/* Styling for Update button (green) */
+.form-actions button.update-btn {
+    background-color: #28a745; 
+}
+/* Hover effect for default button */
+.form-actions button:hover {
+    background-color: #0056b3;
+}
+/* Hover effect for Update button */
+.form-actions button.update-btn:hover {
+    background-color: #218838;
+}
