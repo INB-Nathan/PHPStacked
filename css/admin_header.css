@@ -6,7 +6,7 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Subtle shadow for depth */
     width: 100%;                   /* Take full width of container */
     max-width: 1200px;             /* Limit max width for large screens */
-    overflow: visible;             /* Allow content to overflow if needed */
+    overflow: hidden;              /* Clip overflowing nav, fixes cut-off */
 }
 
 .admin-nav ul {

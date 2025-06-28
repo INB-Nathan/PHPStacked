@@ -6,17 +6,17 @@
     session_start();
 
     // This function would redirect users to login if not authenticated as admin
-    // function requireLogin() {
-    //     if (empty($_SESSION['loggedin']) || !isset($_SESSION['user_type'])) {
-    //         header("Location: ../login.php");
-    //         exit;
-    //     }
-    //     if ($_SESSION['user_type'] !== 'admin') {
-    //         header("Location: ../login.php");
-    //         exit;
-    //     }
-    // }
-    // requireLogin();
+    function requireLogin() {
+        if (empty($_SESSION['loggedin']) || !isset($_SESSION['user_type'])) {
+            header("Location: ../login.php");
+            exit;
+        }
+        if ($_SESSION['user_type'] !== 'admin') {
+            header("Location: ../login.php");
+            exit;
+        }
+    }
+    requireLogin();
 ?>
 
 <!DOCTYPE html>
