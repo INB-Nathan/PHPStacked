@@ -2,6 +2,13 @@
 require_once '../includes/admin_header.php';
 require_once '../includes/db_connect.php';
 session_start();
+
+// Only allow access if logged in and user is admin
+if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
+    header("Location: ../login.php");
+    exit;
+}
+
 //Pag may di gumana tanong nyo muna saken baka sa database field lang.
 // Stores error message
 $err_msg = "";

@@ -1,6 +1,12 @@
 <?php
 require_once '../includes/admin_header.php';
 session_start();
+
+// Only allow access if logged in and user is admin
+if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
+    header("Location: ../login.php");
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
