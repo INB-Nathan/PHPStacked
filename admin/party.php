@@ -85,9 +85,74 @@ try {
     <link rel="stylesheet" href="../css/admin_header.css">
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/party.css">
+    <link rel="stylesheet" href="../css/admin_popup.css">
+    <style>
+        .party-table { width:100%; border-collapse:collapse; margin-top:24px; }
+        .party-table th, .party-table td { padding:8px 10px; border:1px solid #ccc; }
+        .party-table th { background:#2ecc71; color:#fff; }
+        .btn-edit, .btn-delete, .btn-save, .btn-cancel { font-size:0.95em; padding:4px 12px; border:none; border-radius:3px; cursor:pointer; margin:0 2px;}
+        .btn-edit { background:#3498db; color:#fff; }
+        .btn-delete { background:#e74c3c; color:#fff; }
+        .btn-save { background:#2ecc71; color:#fff; }
+        .btn-cancel { background:#95a5a6; color:#fff; text-decoration:none; }
+        .msg-error { color:#e74c3c; margin:8px 0; }
+        .msg-success { color:#27ae60; margin:8px 0; }
+        .party-name-link { color:#27ae60;text-decoration:underline;cursor:pointer;font-weight:bold; }
+        @media (max-width:700px) {
+            .party-table, .party-table th, .party-table td { font-size:0.92em;}
+        }
+
+        /* Modal Styles */
+        #partyMembersModal {
+            display: none;
+            position: fixed;
+            left: 0; top: 0; width: 100vw; height: 100vh;
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        #partyMembersModal.active {
+            display: flex;
+        }
+        #modalBlurBG {
+            position: fixed;
+            left: 0; top: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,.3);
+            backdrop-filter: blur(3px);
+            z-index: 9998;
+        }
+        #partyMembersContent {
+            background: #fff;
+            padding: 28px 36px 24px 36px;
+            max-width: 600px;
+            width: 95%;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 6px 30px 0 rgba(0,0,0,.18);
+            z-index: 10000;
+        }
+        #closeModalBtn {
+            position: absolute;
+            top: 10px; right: 18px;
+            font-size: 2em;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #888;
+        }
+    </style>
 </head>
 <body>
 <?php adminHeader('party'); ?>
+<div id="logoutModal">
+        <div id="logoutModalContent">
+            <h3>Are you sure you want to log out?</h3>
+            <form action="../logout.php" method="post" style="display:inline;">
+                <button type="submit" class="modal-btn confirm">Continue</button>
+            </form>
+            <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
+        </div>
+    </div>
 <div class="container" style="max-width:900px; margin:0 auto;">
 <h1>Party Management</h1>
 
@@ -212,5 +277,17 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 });
 </script>
+<script>
+        document.getElementById('logoutNavBtn').onclick = function(e) {
+            e.preventDefault();
+            document.getElementById('logoutModal').classList.add('active');
+        };
+        document.getElementById('cancelLogoutBtn').onclick = function() {
+            document.getElementById('logoutModal').classList.remove('active');
+        };
+        document.getElementById('logoutModal').onclick = function(e) {
+            if (e.target === this) this.classList.remove('active');
+        };
+    </script>
 </body>
 </html>

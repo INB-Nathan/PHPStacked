@@ -1,11 +1,8 @@
 <?php
-    // Loads the database connection file
     require_once '../includes/db_connect.php';
-    // Loads the admin header navigation
     require_once '../includes/admin_header.php';
     session_start();
 
-    // This function would redirect users to login if not authenticated as admin
     function requireLogin() {
         if (empty($_SESSION['loggedin']) || !isset($_SESSION['user_type'])) {
             header("Location: ../login.php");
@@ -25,23 +22,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="../css/admin_header.css"> <!-- Styles for the header navigation -->
-    <link rel="stylesheet" href="../css/admin_index.css">  <!-- Styles for the dashboard page -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"> <!-- Font Awesome for dashboard icons -->
+    <link rel="stylesheet" href="../css/admin_header.css">
+    <link rel="stylesheet" href="../css/admin_index.css">
+    <link rel="stylesheet" href="../css/admin_popup.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-    <?php 
-        // Shows the admin header with the dashboard tab highlighted
-        adminHeader('dashboard'); 
-    ?>
+    <?php adminHeader('dashboard'); ?>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal">
+        <div id="logoutModalContent">
+            <h3>Are you sure you want to log out?</h3>
+            <form action="../logout.php" method="post" style="display:inline;">
+                <button type="submit" class="modal-btn confirm">Continue</button>
+            </form>
+            <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
+        </div>
+    </div>
+    
     <h1>Welcome to the Admin Dashboard</h1>
     <p>
-        <!-- Shows the username of the logged-in admin -->
         You are logged in as <?php echo $_SESSION['username']; ?>
     </p>
     <div class="dashboard-container">
         <ul class="dashboard-list">
-            <!-- Each item is a dashboard shortcut with an icon and label -->
             <li onclick="location.href='voters.php'">
                 <i class="fa-solid fa-users"></i>
                 <span>Voters Management</span>
@@ -64,5 +69,17 @@
             </li>
         </ul>
     </div>
+    <script>
+        document.getElementById('logoutNavBtn').onclick = function(e) {
+            e.preventDefault();
+            document.getElementById('logoutModal').classList.add('active');
+        };
+        document.getElementById('cancelLogoutBtn').onclick = function() {
+            document.getElementById('logoutModal').classList.remove('active');
+        };
+        document.getElementById('logoutModal').onclick = function(e) {
+            if (e.target === this) this.classList.remove('active');
+        };
+    </script>
 </body>
 </html>

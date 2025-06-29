@@ -1,0 +1,68 @@
+#logoutModal {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    justify-content: center;
+    align-items: center;
+    z-index: 5000;
+}
+
+#logoutModal.active {
+    display: flex;
+}
+
+#logoutModalContent {
+    background: #fff;
+    padding: 32px 38px 24px 38px;
+    border-radius: 14px;
+    box-shadow: 0 6px 32px rgba(0, 0, 0, 0.22);
+    min-width: 310px;
+    text-align: center;
+    position: relative;
+}
+
+#logoutModalContent h3 {
+    margin: 0 0 24px 0;
+    color: #e74c3c;
+    font-size: 1.22em;
+}
+
+.modal-btn {
+    margin: 0 12px;
+    padding: 9px 26px;
+    border-radius: 7px;
+    border: none;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.modal-btn.confirm {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.modal-btn.confirm:hover {
+    background: #c0392b;
+}
+
+.modal-btn.cancel {
+    background: #95a5a6;
+    color: #fff;
+}
+
+.modal-btn.cancel:hover {
+    background: #7f8c8d;
+}
+
+@media (max-width:600px) {
+    #logoutModalContent {
+        min-width: 90vw;
+        padding: 18px 4vw;
+    }
+}
