@@ -140,3 +140,28 @@ function deleteCandidate($id) {
         return "Database Error (Delete Candidate): " . $e->getMessage();
     }
 }
+
+class Party {
+    protected $pdo;
+    public function __construct($pdo) { $this->pdo = $pdo; }
+    public function getAll() {
+        return $this->pdo->query("SELECT * FROM parties ORDER BY name ASC")->fetchAll();
+    }
+    public function getById($id) {
+        $stmt = $this->pdo->prepare("SELECT * FROM parties WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch();
+    }
+    public function add($name, $desc) {
+        $stmt = $this->pdo->prepare("INSERT INTO parties (name, description) VALUES (?, ?)");
+        return $stmt->execute([$name, $desc]);
+    }
+    public function update($id, $name, $desc) {
+        $stmt = $this->pdo->prepare("UPDATE parties SET name = ?, description = ? WHERE id = ?");
+        return $stmt->execute([$name, $desc, $id]);
+    }
+    public function delete($id) {
+        $stmt = $this->pdo->prepare("DELETE FROM parties WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
+}

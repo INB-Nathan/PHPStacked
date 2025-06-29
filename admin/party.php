@@ -1,66 +1,84 @@
 <?php
 require_once '../includes/admin_header.php';
 require_once '../includes/db_connect.php';
+require_once '../includes/functions.php';
 session_start();
 
-// quick require admin login check -- plan to add a error page that will say not admin.
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') {
     header('Location: ../login.php');
     exit;
 }
 
-// add party POST ewan ko kung pano ko to gagawin wish me luck
-$add_error = '';
-$add_success = '';
-// check niya muna if ung request method is post kasi kapag post nag sesend ng data si webserver to the database
-// then checheck nya if add_party exists sa loob ni $_POST array. isset para required ung field para kapag nag request na meron dapat.
+$partyObj = new Party($pdo);
+
+$addError = $addSuccess = $editError = $editSuccess = $deleteError = $deleteSuccess = '';
+$editing_id = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
+
+// ADD PARTY
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_party'])) {
-    // bali eto pang kuha lang ng data sa post array, bali party name and party desc itritrim para walang space sa harap or sa likod.
-    // then what happens is checheck niya if nag eexist nga ung variable na party_name and party_desc sa loob ni post array.
-    // if nag eexist siya gagamitin nya ung nasa loob ni post array
-    // if inde, empty string. dahil sa "?? ''". it means if missing or null eto bibigay na value nya ''; which is nothing.
     $party_name = trim($_POST['party_name'] ?? '');
     $party_desc = trim($_POST['party_desc'] ?? '');
-    // if statement para ma check if may party name, if wala edi lagay natin sa $add_error message natin na need nila ng party name
     if ($party_name === '') {
-        $add_error = 'Party name required.';
-        // inuna nalang natin icheck if wala para kapag meron laman diretso tayo, since mas mabilis logic neto
-        // ata? di ko lam, its currently 2:37 and im dying!
-        // sa else naman dito na tayo mag lalagay ng sql statements and then execute it to the database!
+        $addError = 'Party name required.';
     } else {
         try {
-            // -> means prepareing an sql statement, kahit ano yan na sql statement
-            // we use pdo rin kasi dahil nag seseperate siya ng values sa execute, bali mahihirapan sila mag sql injection gamit ng prepared statements.
-            // bali kasi kapag nag sql-exec ka lang or someshit, iaano niya lang yon ipapaste niya, so kapag may laman ung input fields na malicious sql commands
-            // napasok ka na idol.
-            $stmt = $pdo->prepare('INSERT INTO parties (name, description) VALUES (?, ?)');
-            $stmt->execute([$party_name, $party_desc]);
-            $add_success = "Party Added";
+            $partyObj->add($party_name, $party_desc);
+            $addSuccess = 'Party added!';
         } catch (PDOException $e) {
-            // error code 23000 : https://help.nextcloud.com/t/sqlstate-23000-integrity-constraint-violation-1062-duplicate-entry-7457-1687094389-for-key-gf-versions-uniq-index/177890
-            // basically may duplicate eh bawal yon!
-            if ($e->getCode() === 23000) {
-                $add_error = "Party name must be unique.";
+            if ($e->getCode() == 23000) {
+                $addError = 'Party name must be unique.';
             } else {
-                $add_error = "Database error: " . htmlspecialchars($e->getMessage());
+                $addError = 'DB error: ' . htmlspecialchars($e->getMessage());
             }
         }
     }
 }
 
-// fetch all parties
-try {
-    // since eto naman di na need ng input fields diretso ->fetchall na pag ka load ng page.
-    $parties = $pdo->query('SELECT * FROM parties ORDER BY name ASC')->fetchAll();
-} catch (PDOException $e) {
-    $parties = [];
-    $fetch_error = "Could not fetch parties: " . htmlspecialchars($e->getMessage()) . '.';
+// UPDATE PARTY
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_party'])) {
+    $party_id = (int)$_POST['party_id'];
+    $party_name = trim($_POST['party_name'] ?? '');
+    $party_desc = trim($_POST['party_desc'] ?? '');
+    if ($party_name === '') {
+        $editError = 'Party name required.';
+        $editing_id = $party_id;
+    } else {
+        try {
+            $partyObj->update($party_id, $party_name, $party_desc);
+            $editSuccess = 'Party updated!';
+            $editing_id = 0;
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
+                $editError = 'Party name must be unique.';
+            } else {
+                $editError = 'DB error: ' . htmlspecialchars($e->getMessage());
+            }
+            $editing_id = $party_id;
+        }
+    }
 }
 
+// DELETE PARTY
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_party'])) {
+    $party_id = (int)$_POST['party_id'];
+    try {
+        $partyObj->delete($party_id);
+        $deleteSuccess = 'Party deleted.';
+        if ($editing_id == $party_id) $editing_id = 0;
+    } catch (PDOException $e) {
+        $deleteError = 'Delete failed: ' . htmlspecialchars($e->getMessage());
+    }
+}
+
+try {
+    $parties = $partyObj->getAll();
+} catch (PDOException $e) {
+    $parties = [];
+    $fetchError = "Could not fetch parties: " . htmlspecialchars($e->getMessage()) . '.';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <title>Party Management</title>
@@ -68,61 +86,131 @@ try {
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/party.css">
 </head>
-
 <body>
-    <?php adminHeader('party'); ?>
-    <h1>Party Management</h1>
-    <div class="add-party-form">
-        <form method="post" autocomplete="off">
-            <div class="form_row"><strong>ADD NEW PARTY</strong></div>
-            <?php if ($addError): ?><div class="msg-error"><?= htmlspecialchars($addError) ?></div><?php endif; ?>
-            <?php if ($addSuccess): ?><div class="msg-success"><?= htmlspecialchars($addSuccess) ?></div><?php endif; ?>
-            <div class="form-row">
-                <label for="party_name">Party Name:</label><br>
-                <input type="text" name="party_name" id="party_name" maxlength="100" required style="width:95%;">
-            </div>
-            <div class="form-row">
-                <label for="party_desc">Description (optional):</label><br>
-                <textarea name="party_desc" id="party_desc" rows="2" maxlength="255" style="width:95%;"></textarea>
-            </div>
-            <div class="form-row">
-                <button type="submit" name="add_party">Add Party</button>
-            </div>
-        </form>
-    </div>
+<?php adminHeader('party'); ?>
+<div class="container" style="max-width:900px; margin:0 auto;">
+<h1>Party Management</h1>
 
-    <h2>Existing Parties</h2>
-    <?php if (!empty($fetchError)): ?>
-        <div class="msg-error"><?= htmlspecialchars($fetchError) ?></div>
-    <?php endif; ?>
-    <table class="party-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Description</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if ($parties): ?>
-                <?php foreach ($parties as $party): ?>
-                    <tr>
-                        <td><?= $party['id'] ?></td>
+<div class="add-party-form" style="max-width:400px;">
+    <form method="post" autocomplete="off">
+        <div class="form_row"><strong>Add New Party</strong></div>
+        <?php if ($addError): ?><div class="msg-error"><?= htmlspecialchars($addError) ?></div><?php endif; ?>
+        <?php if ($addSuccess): ?><div class="msg-success"><?= htmlspecialchars($addSuccess) ?></div><?php endif; ?>
+        <div class="form-row">
+            <label for="party_name">Party Name:</label><br>
+            <input type="text" name="party_name" id="party_name" maxlength="100" required style="width:97%;">
+        </div>
+        <div class="form-row">
+            <label for="party_desc">Description (optional):</label><br>
+            <textarea name="party_desc" id="party_desc" rows="2" maxlength="255" style="width:97%;"></textarea>
+        </div>
+        <div class="form-row">
+            <button type="submit" name="add_party" class="btn-save">Add Party</button>
+        </div>
+    </form>
+</div>
+
+<h2 style="margin-top:36px;">Existing Parties</h2>
+<?php if (!empty($fetchError)): ?>
+    <div class="msg-error"><?= htmlspecialchars($fetchError) ?></div>
+<?php endif; ?>
+<?php if ($deleteError): ?><div class="msg-error"><?= htmlspecialchars($deleteError) ?></div><?php endif; ?>
+<?php if ($deleteSuccess): ?><div class="msg-success"><?= htmlspecialchars($deleteSuccess) ?></div><?php endif; ?>
+<?php if ($editError): ?><div class="msg-error"><?= htmlspecialchars($editError) ?></div><?php endif; ?>
+<?php if ($editSuccess): ?><div class="msg-success"><?= htmlspecialchars($editSuccess) ?></div><?php endif; ?>
+
+<table class="party-table">
+    <thead>
+        <tr>
+            <th style="width:6%;">ID</th>
+            <th style="width:24%;">Name</th>
+            <th>Description</th>
+            <th style="width:22%;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php if ($parties): ?>
+            <?php foreach ($parties as $party): ?>
+                <?php if ($editing_id == $party['id']): ?>
+                <tr style="background:#f9f9f9;">
+                    <form method="post" autocomplete="off">
+                        <td><?= $party['id'] ?><input type="hidden" name="party_id" value="<?= $party['id'] ?>"></td>
+                        <td><input type="text" name="party_name" maxlength="100" style="width:96%;" value="<?= htmlspecialchars($party['name']) ?>" required></td>
+                        <td><textarea name="party_desc" maxlength="255" rows="1" style="width:98%;"><?= htmlspecialchars($party['description']) ?></textarea></td>
                         <td>
-                            <a href="party_members.php?id=<?= $party['id'] ?>" style="color:#27ae60;text-decoration:underline;">
-                                <?= htmlspecialchars($party['name']) ?>
-                            </a>
+                            <button type="submit" name="update_party" class="btn-save">Save</button>
+                            <a href="party.php" class="btn-cancel">Cancel</a>
                         </td>
-                        <td><?= htmlspecialchars($party['description']) ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="3" style="text-align:center;">No parties found.</td>
+                    </form>
                 </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
-</body>
+                <?php else: ?>
+                <tr>
+                    <td><?= $party['id'] ?></td>
+                    <td>
+                        <span class="party-name-link" data-partyid="<?= $party['id'] ?>" data-partyname="<?= htmlspecialchars($party['name']) ?>">
+                            <?= htmlspecialchars($party['name']) ?>
+                        </span>
+                    </td>
+                    <td><?= htmlspecialchars($party['description']) ?></td>
+                    <td>
+                        <a href="party.php?edit=<?= $party['id'] ?>" class="btn-edit">Edit</a>
+                        <form method="post" style="display:inline;" onsubmit="return confirm('Delete this party?');">
+                            <input type="hidden" name="party_id" value="<?= $party['id'] ?>">
+                            <button type="submit" name="delete_party" class="btn-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <tr>
+                <td colspan="4" style="text-align:center;">No parties found.</td>
+            </tr>
+        <?php endif; ?>
+    </tbody>
+</table>
+</div>
 
+<!-- Modal Structure -->
+<div id="partyMembersModal">
+    <div id="modalBlurBG"></div>
+    <div id="partyMembersContent">
+        <button id="closeModalBtn">&times;</button>
+        <div id="partyMembersInner"></div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Use event delegation for dynamic elements
+  document.querySelectorAll('.party-name-link').forEach(function(link) {
+    link.addEventListener('click', function() {
+      var partyId = this.getAttribute('data-partyid');
+      var partyName = this.getAttribute('data-partyname');
+      var modal = document.getElementById('partyMembersModal');
+      var inner = document.getElementById('partyMembersInner');
+      inner.innerHTML = '<div style="text-align:center;padding:30px;">Loading...</div>';
+      modal.classList.add('active');
+
+      // AJAX request to load members
+      fetch('party_members.php?id=' + encodeURIComponent(partyId))
+        .then(resp => resp.text())
+        .then(html => {
+          inner.innerHTML = '<h2 style="margin-top:0;">' + partyName + ' Members</h2>' + html;
+        })
+        .catch(() => {
+          inner.innerHTML = '<div style="color:red;text-align:center;">Failed to load members. Try again.</div>';
+        });
+    });
+  });
+
+  // Close modal
+  document.getElementById('closeModalBtn').onclick = function() {
+    document.getElementById('partyMembersModal').classList.remove('active');
+  };
+  document.getElementById('modalBlurBG').onclick = function() {
+    document.getElementById('partyMembersModal').classList.remove('active');
+  };
+});
+</script>
+</body>
 </html>
