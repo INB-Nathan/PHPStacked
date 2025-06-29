@@ -1,6 +1,12 @@
 CREATE DATABASE IF NOT EXISTS PHPStacked_DB;
 USE PHPStacked_DB;
 
+CREATE TABLE positions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    position_name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE elections (
     id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255) NOT NULL,
@@ -11,7 +17,7 @@ CREATE TABLE elections (
     max_votes_per_user INT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    --CONSTRAINT chk_election_dates CHECK (end_date > start_date)
+    -- CONSTRAINT chk_election_dates CHECK (end_date > start_date)
 );
 
 CREATE TABLE users (
@@ -39,7 +45,7 @@ CREATE TABLE candidates (
     id INT PRIMARY KEY AUTO_INCREMENT,
     election_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
-    position VARCHAR(255) NOT NULL,
+    position_id INT NOT NULL,
     party_id INT NULL,
     bio TEXT NULL,
     photo VARCHAR(255) NULL,
@@ -49,7 +55,8 @@ CREATE TABLE candidates (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (party_id) REFERENCES parties(id) ON DELETE SET NULL ON UPDATE CASCADE
+    FOREIGN KEY (party_id) REFERENCES parties(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    FOREIGN KEY (position_id) REFERENCES positions(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE votes (
@@ -66,3 +73,7 @@ CREATE TABLE votes (
     FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
+
+-- Test admin user admin pogiako123
+INSERT INTO users (username, email, pass_hash, full_name, user_type)
+VALUES ('admin', 'admin@gmail.com', '$2y$10$hc.hkHLCeO91bZIp7BB4RuFhSvBjJNLd2AI7rngONlJVQDvdQLhOK', 'adminako', 'admin');

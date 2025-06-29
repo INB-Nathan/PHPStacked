@@ -165,3 +165,37 @@ class Party {
         return $stmt->execute([$id]);
     }
 }
+
+class Position {
+    private $pdo;
+
+    public function __construct($pdo) {
+        $this->pdo = $pdo;
+    }
+
+    public function getAll() {
+        $stmt = $this->pdo->query("SELECT * FROM positions ORDER BY position_name");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getById($id) {
+        $stmt = $this->pdo->prepare("SELECT * FROM positions WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function add($position_name) {
+        $stmt = $this->pdo->prepare("INSERT INTO positions (position_name) VALUES (?)");
+        return $stmt->execute([$position_name]);
+    }
+
+    public function update($id, $position_name) {
+        $stmt = $this->pdo->prepare("UPDATE positions SET position_name = ? WHERE id = ?");
+        return $stmt->execute([$position_name, $id]);
+    }
+
+    public function delete($id) {
+        $stmt = $this->pdo->prepare("DELETE FROM positions WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
+}

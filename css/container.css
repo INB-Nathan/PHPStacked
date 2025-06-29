@@ -1,0 +1,21 @@
+.container-flex {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 80vh;
+}
+.management-box {
+    flex: 1 1 45%;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    padding: 2rem;
+    min-width: 320px;
+}
+@media (max-width: 768px) {
+    .container-flex { flex-direction: column; }
+    .management-box { min-width: unset; margin-bottom: 2rem; }
+}

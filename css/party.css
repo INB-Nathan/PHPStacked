@@ -21,7 +21,6 @@ h2 {
     letter-spacing: 0.5px;
 }
 
-/* Form Container */
 .add-party-form {
     margin: 32px auto 24px auto;
     padding: 24px 28px 18px 28px;
@@ -57,7 +56,7 @@ h2 {
 .add-party-form input[type="text"]:focus,
 .add-party-form textarea:focus {
     border-color: #27ae60;
-    outline: 2px solid #abff2e;
+    outline: none;
 }
 
 .add-party-form button[type="submit"] {
@@ -69,27 +68,25 @@ h2 {
     font-size: 1.1em;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.18s, color 0.18s, transform 0.18s;
+    transition: background 0.2s, color 0.2s, transform 0.2s;
 }
 
-.add-party-form button[type="submit"]:hover,
-.btn-save:hover {
+.add-party-form button[type="submit"]:hover {
     background: #abff2e;
     color: #1d2b20;
     transform: translateY(-2px) scale(1.04);
 }
 
-.msg-error, .msg-success {
+.msg-error {
+    color: #e74c3c;
     margin-bottom: 10px;
     text-align: center;
 }
 
-.msg-error {
-    color: #e74c3c;
-}
-
 .msg-success {
     color: #27ae60;
+    margin-bottom: 10px;
+    text-align: center;
 }
 
 .party-table {
@@ -103,7 +100,8 @@ h2 {
     overflow: hidden;
 }
 
-.party-table th, .party-table td {
+.party-table th,
+.party-table td {
     border: 1px solid #e3e3e3;
     padding: 12px 18px;
     text-align: left;
@@ -111,9 +109,10 @@ h2 {
 }
 
 .party-table th {
-    background: #2ecc71;
-    color: #fff;
+    background: #f8f8f8;
+    color: #27ae60;
     font-weight: 700;
+    font-size: 1.08em;
 }
 
 .party-table tbody tr:nth-child(even) {
@@ -125,99 +124,12 @@ h2 {
     transition: background 0.18s;
 }
 
-.btn-edit, .btn-delete, .btn-save, .btn-cancel {
-    font-size: 0.96em;
-    padding: 7px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    margin: 0 2px;
-    font-weight: 500;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-    transition: background 0.16s, color 0.16s;
-}
-
-.btn-edit { background: #3498db; color: #fff; }
-.btn-edit:hover, .btn-edit:focus { background: #217dbb; }
-
-.btn-delete { background: #e74c3c; color: #fff; }
-.btn-delete:hover, .btn-delete:focus { background: #c0392b; }
-
-.btn-save { background: #2ecc71; color: #fff; }
-.btn-save:hover, .btn-save:focus { background: #27ae60; }
-
-.btn-cancel { background: #95a5a6; color: #fff; text-decoration: none; }
-.btn-cancel:hover, .btn-cancel:focus { background: #7f8c8d; }
-
-.party-name-link {
-    color: #27ae60;
-    text-decoration: underline;
-    cursor: pointer;
-    font-weight: bold;
-    transition: color 0.16s;
-}
-.party-name-link:hover, .party-name-link:focus {
-    color: #2ecc71;
-    text-decoration: underline;
-}
-
-/* Modal Styles */
-#partyMembersModal {
-    display: none;
-    position: fixed;
-    left: 0; top: 0;
-    width: 100vw; height: 100vh;
-    z-index: 9999;
-    justify-content: center;
-    align-items: center;
-}
-#partyMembersModal.active { display: flex; }
-#modalBlurBG {
-    position: fixed;
-    left: 0; top: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,.25);
-    backdrop-filter: blur(3.5px);
-    z-index: 9998;
-}
-#partyMembersContent {
-    background: #fff;
-    padding: 32px 38px 24px 38px;
-    max-width: 580px;
-    width: 96vw;
-    border-radius: 14px;
-    position: relative;
-    box-shadow: 0 6px 32px rgba(0,0,0,0.22);
-    z-index: 10000;
-    animation: fadeInModal 0.23s;
-}
-@keyframes fadeInModal {
-    from { opacity: 0; transform: scale(.96);}
-    to { opacity: 1; transform: scale(1);}
-}
-#closeModalBtn {
-    position: absolute;
-    top: 10px; right: 18px;
-    font-size: 2em;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #888;
-    transition: color 0.17s;
-}
-#closeModalBtn:hover, #closeModalBtn:focus {
-    color: #e74c3c;
-}
-
 @media (max-width: 600px) {
-    .add-party-form, .party-table, #partyMembersContent {
+    .add-party-form, .party-table {
         max-width: 99vw;
         font-size: 0.98em;
-        padding: 20px 7vw;
     }
     .party-table th, .party-table td {
         padding: 8px 6px;
-    }
-    #partyMembersContent {
-        padding: 18px 2vw 16px 2vw;
     }
 }

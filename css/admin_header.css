@@ -1,20 +1,11 @@
 .admin-header {
-    background: #27ae60;
-    /* Main green background for header */
-    padding: 0;
-    /* No extra padding */
-    border-radius: 24px;
-    /* Rounded corners for floating look */
-    margin: 16px auto;
-    /* Center header with margin */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    /* Subtle shadow for depth */
-    width: 100%;
-    /* Take full width of container */
-    max-width: 1200px;
-    /* Limit max width for large screens */
-    overflow: hidden;
-    /* Clip overflowing nav, fixes cut-off */
+    background: #27ae60;           /* Main green background for header */
+    padding: 0;                    /* No extra padding */
+    border-radius: 24px;           /* Rounded corners for floating look */
+    margin: 16px auto;             /* Center header with margin */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Subtle shadow for depth */
+    width: 100%;                   /* Take full width of container */
+    overflow: hidden;              /* Clip overflowing nav, fixes cut-off */
     position: relative;
 }
 
@@ -27,95 +18,41 @@
 }
 
 .admin-nav ul {
-    list-style: none;
-    /* Remove default list bullets */
-    margin: 0;
-    /* Remove default margin */
-    padding: 0;
-    /* Remove horizontal padding */
-    display: flex;
-    /* Horizontal layout for nav items */
-    justify-content: center;
-    /* Center nav items in header */
-    flex-wrap: nowrap;
-    /* Prevent nav items from wrapping */
-    overflow-x: auto;
-    /* Allow horizontal scroll if too many items */
-    background: transparent;
-    /* No background for nav container */
+    list-style: none;              /* Remove default list bullets */
+    margin: 0;                     /* Remove default margin */
+    padding: 0;                    /* Remove horizontal padding */
+    display: flex;                 /* Horizontal layout for nav items */
+    justify-content: center;       /* Center nav items in header */
+    flex-wrap: nowrap;             /* Prevent nav items from wrapping */
+    overflow-x: auto;              /* Allow horizontal scroll if too many items */
+    background: transparent;       /* No background for nav container */
 }
 
 .admin-nav li {
-    text-align: center;
-    /* Center text in each nav item */
-    margin: 0;
-    /* No extra margin */
-    white-space: nowrap;
-    /* Prevent nav text from wrapping */
+    text-align: center;            /* Center text in each nav item */
+    margin: 0;                     /* No extra margin */
+    white-space: nowrap;           /* Prevent nav text from wrapping */
 }
 
 .admin-nav a {
-    display: block;
-    /* Make link fill the nav item */
-    padding: 16px 32px;
-    /* Space around nav text */
-    color: #f5f6fa;
-    /* Light text color */
-    text-decoration: none;
-    /* Remove underline from links */
-    font-weight: bold;
-    /* Bold nav text */
-    transition: background 0.2s, color 0.2s;
-    /* Smooth hover effect */
-    box-sizing: border-box;
-    /* Include padding in width */
-    border-radius: 16px;
-    /* Rounded highlight on hover/active */
+    display: block;                /* Make link fill the nav item */
+    padding: 16px 32px;            /* Space around nav text */
+    color: #f5f6fa;                /* Light text color */
+    text-decoration: none;         /* Remove underline from links */
+    font-weight: bold;             /* Bold nav text */
+    transition: background 0.2s, color 0.2s; /* Smooth hover effect */
+    box-sizing: border-box;        /* Include padding in width */
+    border-radius: 16px;           /* Rounded highlight on hover/active */
 }
 
 .admin-nav li.active a,
 .admin-nav a:hover {
-    background: #abff2e;
-    /* Highlight color for active/hover */
-    color: #1d2b20;
-    /* Dark text on highlight */
+    background: #abff2e;           /* Highlight color for active/hover */
+    color: #1d2b20;                /* Dark text on highlight */
 }
 
-logout-btn {
-    background: #e74c3c;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 22px;
-    font-size: 1.08em;
-    font-weight: bold;
-    cursor: pointer;
-    margin-left: 18px;
-    transition: background 0.18s, color 0.18s, transform 0.16s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.logout-btn:hover,
-.logout-btn:focus {
-    background: #c0392b;
-}
-
-@media (max-width: 900px) {
-    .admin-header {
-        border-radius: 0;
-    }
-
-    .admin-nav {
-        flex-direction: column;
-        align-items: stretch;
-        padding-right: 0;
-    }
-
-    .logout-btn {
-        width: 96vw;
-        margin: 8px auto 12px auto;
-        justify-content: center;
-    }
+#logoutNavBtn i {
+    margin-right: 7px;
+    font-size: 1em;
+    vertical-align: baseline;
 }
