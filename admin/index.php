@@ -29,8 +29,6 @@
 </head>
 <body>
     <?php adminHeader('dashboard'); ?>
-
-    <!-- Logout Confirmation Modal -->
     <div id="logoutModal">
         <div id="logoutModalContent">
             <h3>Are you sure you want to log out?</h3>
@@ -51,13 +49,9 @@
                 <i class="fa-solid fa-users"></i>
                 <span>Voters Management</span>
             </li>
-            <li onclick="location.href='party.php'">
+            <li onclick="location.href='party_position.php'">
                 <i class="fa-solid fa-flag"></i>
-                <span>Party Management</span>
-            </li>
-            <li onclick="location.href='positions.php'">
-                <i class="fa-solid fa-list-ol"></i>
-                <span>Positions Management</span>
+                <span>Party and Position Management</span>
             </li>
             <li onclick="location.href='candidates.php'">
                 <i class="fa-solid fa-user-tie"></i>

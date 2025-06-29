@@ -11,10 +11,7 @@ function adminHeader($active = '') {
                     <a href="voters.php">Voters Management</a>
                 </li>
                 <li class="<?php echo $active == 'party' ? 'active' : ''; ?>">
-                    <a href="party.php">Party Management</a>
-                </li>
-                <li class="<?php echo $active == 'positions' ? 'active' : ''; ?>">
-                    <a href="positions.php">Positions Management</a>
+                    <a href="party_position.php">Party and Position Management</a>
                 </li>
                 <li class="<?php echo $active == 'candidates' ? 'active' : ''; ?>">
                     <a href="candidates.php">Candidate Management</a>
