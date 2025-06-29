@@ -74,6 +74,9 @@ CREATE TABLE votes (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
+INSERT INTO parties (name, description)
+VALUES ('Independent', 'Independent Candidate');
+
 -- Test admin user admin pogiako123
 INSERT INTO users (username, email, pass_hash, full_name, user_type)
 VALUES ('admin', 'admin@gmail.com', '$2y$10$hc.hkHLCeO91bZIp7BB4RuFhSvBjJNLd2AI7rngONlJVQDvdQLhOK', 'adminako', 'admin');

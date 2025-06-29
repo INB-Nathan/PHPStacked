@@ -1,201 +1,284 @@
 <?php
-// Ensure db_connect.php is included for PDO connection
-// Using __DIR__ ensures the path is absolute and relative to the current file's directory.
 require_once __DIR__ . '/db_connect.php';
 
 /**
- * Adds a new candidate to the database.
- *
- * @param int $electionId The ID of the election this candidate belongs to.
- * @param string $name The name of the candidate.
- * @param string $position The position the candidate is running for.
- * @param string $description A description or platform of the candidate (maps to 'bio' in DB).
- * @param string $photoPath The file path to the candidate's photo (maps to 'photo' in DB).
- * @return bool|string True on success, or an error message string on failure.
+ * Handle file uploads.
+ * @param array  $file        $_FILES['field']
+ * @param string $relativeDir web‐relative dir (e.g. 'uploads/candidates/')
+ * @param string &$error      out‐param error message
+ * @return string|null        web‐relative path or null on failure
  */
-function addCandidate($electionId, $name, $position, $description, $photoPath = null) {
-    global $pdo; // Access the PDO object from db_connect.php
+function handleFileUpload(array $file, string $relativeDir, string &$error = null): ?string {
+    // Build absolute target directory under project root
+    $uploadDir = realpath(__DIR__ . "/../{$relativeDir}");
+    if ($uploadDir === false) {
+        // Directory doesn't exist – try to create it
+        $base = __DIR__ . "/../";
+        if (!mkdir($base . $relativeDir, 0777, true)) {
+            $error = "Failed to create upload directory: {$base}{$relativeDir}";
+            error_log($error);
+            return null;
+        }
+        $uploadDir = realpath($base . $relativeDir);
+    }
+
+    // Check write permissions
+    if (!is_writable($uploadDir)) {
+        $error = "Upload directory is not writable: {$uploadDir}";
+        error_log($error);
+        return null;
+    }
+
+    // Check PHP upload error
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $error = 'Upload error code: ' . $file['error'];
+        error_log($error);
+        return null;
+    }
+
+    // Validate image
+    if (getimagesize($file['tmp_name']) === false) {
+        $error = 'Uploaded file is not a valid image.';
+        error_log($error);
+        return null;
+    }
+
+    // Generate unique filename
+    $ext      = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $filename = uniqid('candidate_', true) . '.' . $ext;
+    $dest     = $uploadDir . DIRECTORY_SEPARATOR . $filename;
+
+    // Attempt to move uploaded file
+    if (!move_uploaded_file($file['tmp_name'], $dest)) {
+        $error = 'Error moving uploaded file to: ' . $dest;
+        error_log($error);
+        return null;
+    }
+
+    // Return the path relative to the web root
+    return rtrim($relativeDir, '/') . '/' . $filename;
+}
+
+/**
+ * Delete an uploaded file by its web‐relative path.
+ * @param string $relativePath
+ * @return bool
+ */
+function deleteFile(string $relativePath): bool {
+    $full = __DIR__ . "/../{$relativePath}";
+    if (file_exists($full)) {
+        return unlink($full);
+    }
+    return true;
+}
+
+// --- Candidate CRUD ---
+
+/**
+ * Adds a new candidate.
+ * Uses position_id and party_id instead of raw names.
+ */
+function addCandidate(
+    int $electionId,
+    string $name,
+    int $position_id,
+    ?int $party_id,
+    string $description,
+    ?string $photoPath = null
+): bool|string {
+    global $pdo;
     try {
-        // Updated query to include election_id and changed photo_path to photo, description to bio
-        $stmt = $pdo->prepare("INSERT INTO candidates (election_id, name, position, bio, photo) VALUES (:election_id, :name, :position, :bio, :photo)");
+        $stmt = $pdo->prepare(
+            "INSERT INTO candidates
+             (election_id, name, position_id, party_id, bio, photo)
+             VALUES
+             (:election_id, :name, :position_id, :party_id, :bio, :photo)"
+        );
         $stmt->execute([
             'election_id' => $electionId,
-            'name' => $name,
-            'position' => $position,
-            'bio' => $description, // I-map ang description from form to bio sa DB
-            'photo' => $photoPath  // Changed photo_path to photo
+            'name'        => $name,
+            'position_id' => $position_id,
+            'party_id'    => $party_id,
+            'bio'         => $description,
+            'photo'       => $photoPath
         ]);
         return true;
     } catch (PDOException $e) {
-        // Return the error message for display during debugging
-        return "Database Error (Add Candidate): " . $e->getMessage();
+        return 'DB Error (Add Candidate): ' . $e->getMessage();
     }
 }
 
 /**
- * Fetches all candidates from the database.
- *
- * @return array An array of candidate records, or an empty array if none found.
+ * Fetches all candidates and joins positions & parties to get names.
  */
-function getCandidates() {
+function getCandidates(): array {
     global $pdo;
-    try {
-        // Changed photo_path to photo, description to bio
-        $stmt = $pdo->query("SELECT id, election_id, name, position, bio AS description, photo AS photo_path FROM candidates ORDER BY name ASC");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        // Return the error message for display during debugging
-        error_log("Error fetching candidates: " . $e->getMessage()); // Keep logging as fallback
-        return []; // Still return empty array so page doesn't break
-    }
+    $sql = "
+      SELECT
+        c.id,
+        c.election_id,
+        c.name,
+        p.position_name   AS position,
+        COALESCE(pt.name,'Independent') AS partylist,
+        c.bio             AS description,
+        c.photo           AS photo_path
+      FROM candidates c
+      JOIN positions p   ON c.position_id = p.id
+      LEFT JOIN parties pt ON c.party_id    = pt.id
+      ORDER BY c.name ASC
+    ";
+    return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /**
- * Fetches a single candidate by their ID.
- *
- * @param int $id The ID of the candidate.
- * @return array|null|string An associative array of candidate data, null if not found, or an error message string on failure.
+ * Fetch single candidate by ID, include position_id and party_id.
  */
-function getCandidateById($id) {
+function getCandidateById(int $id): array|null|string {
     global $pdo;
     try {
-        // Changed photo_path to photo, description to bio
-        $stmt = $pdo->prepare("SELECT id, election_id, name, position, bio AS description, photo AS photo_path FROM candidates WHERE id = :id LIMIT 1");
+        $sql = "
+          SELECT
+            c.id,
+            c.election_id,
+            c.name,
+            c.position_id,
+            c.party_id,
+            p.position_name   AS position,
+            COALESCE(pt.name,'Independent') AS partylist,
+            c.bio             AS description,
+            c.photo           AS photo_path
+          FROM candidates c
+          JOIN positions p   ON c.position_id = p.id
+          LEFT JOIN parties pt ON c.party_id    = pt.id
+          WHERE c.id = :id
+          LIMIT 1
+        ";
+        $stmt = $pdo->prepare($sql);
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
-        // Return the error message for display during debugging
-        return "Database Error (Get Candidate By ID): " . $e->getMessage();
+        return 'DB Error (Get Candidate): ' . $e->getMessage();
     }
 }
 
 /**
- * Updates an existing candidate's information.
- *
- * @param int $id The ID of the candidate to update.
- * @param string $name The new name.
- * @param string $position The new position.
- * @param string $description The new description (maps to 'bio' in DB).
- * @param string $photoPath The new photo path (can be null if not updated, maps to 'photo' in DB).
- * @return bool|string True on success, or an error message string on failure.
+ * Updates an existing candidate.
  */
-function updateCandidate($id, $name, $position, $description, $photoPath = null) {
+function updateCandidate(
+    int $id,
+    string $name,
+    int $position_id,
+    ?int $party_id,
+    string $description,
+    ?string $photoPath = null
+): bool|string {
     global $pdo;
     try {
-        if ($photoPath) {
-            // Updated query to change photo_path to photo, description to bio
-            $stmt = $pdo->prepare("UPDATE candidates SET name = :name, position = :position, bio = :bio, photo = :photo WHERE id = :id");
-            $stmt->execute([
-                'name' => $name,
-                'position' => $position,
-                'bio' => $description, // I-map ang description from form to bio sa DB
-                'photo' => $photoPath,  // Changed photo_path to photo
-                'id' => $id
-            ]);
+        if ($photoPath !== null) {
+            $sql = "
+              UPDATE candidates SET
+                name        = :name,
+                position_id = :position_id,
+                party_id    = :party_id,
+                bio         = :bio,
+                photo       = :photo
+              WHERE id = :id
+            ";
+            $params = [
+                'name'        => $name,
+                'position_id' => $position_id,
+                'party_id'    => $party_id,
+                'bio'         => $description,
+                'photo'       => $photoPath,
+                'id'          => $id
+            ];
         } else {
-            // Update without changing photo if it's null (changed photo_path to photo, description to bio)
-            $stmt = $pdo->prepare("UPDATE candidates SET name = :name, position = :position, bio = :bio WHERE id = :id");
-            $stmt->execute([
-                'name' => $name,
-                'position' => $position,
-                'bio' => $description, // I-map ang description from form to bio sa DB
-                'id' => $id
-            ]);
+            $sql = "
+              UPDATE candidates SET
+                name        = :name,
+                position_id = :position_id,
+                party_id    = :party_id,
+                bio         = :bio
+              WHERE id = :id
+            ";
+            $params = [
+                'name'        => $name,
+                'position_id' => $position_id,
+                'party_id'    => $party_id,
+                'bio'         => $description,
+                'id'          => $id
+            ];
         }
-        return $stmt->rowCount() > 0; // Check if any rows were affected
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return true;
     } catch (PDOException $e) {
-        // Return the error message for display during debugging
-        return "Database Error (Update Candidate): " . $e->getMessage();
+        return 'DB Error (Update Candidate): ' . $e->getMessage();
     }
 }
 
 /**
- * Deletes a candidate from the database.
- *
- * @param int $id The ID of the candidate to delete.
- * @return bool|string True on success, or an error message string on failure.
+ * Deletes a candidate and its photo.
  */
-function deleteCandidate($id) {
+function deleteCandidate(int $id): bool|string {
     global $pdo;
     try {
-        // First, get the photo path to delete the file
-        $candidate = getCandidateById($id);
-        // Important: check if $candidate is an array (success) or string (error)
-        if (is_array($candidate) && $candidate && !empty($candidate['photo_path'])) {
-            $full_photo_path = __DIR__ . '/../' . $candidate['photo_path'];
-            // Check if file exists before attempting to delete
-            if (file_exists($full_photo_path)) {
-                unlink($full_photo_path); // Delete the photo file
-            }
-        } elseif (is_string($candidate)) {
-            // If getCandidateById returned an error string, use it
-            return "Delete Candidate Error: " . $candidate;
+        $cand = getCandidateById($id);
+        if (is_array($cand) && !empty($cand['photo_path'])) {
+            deleteFile($cand['photo_path']);
         }
-
         $stmt = $pdo->prepare("DELETE FROM candidates WHERE id = :id");
         $stmt->execute(['id' => $id]);
-        return $stmt->rowCount() > 0;
+        return true;
     } catch (PDOException $e) {
-        // Return the error message for display during debugging
-        return "Database Error (Delete Candidate): " . $e->getMessage();
+        return 'DB Error (Delete Candidate): ' . $e->getMessage();
     }
 }
+
+// --- Party CRUD ---
 
 class Party {
     protected $pdo;
     public function __construct($pdo) { $this->pdo = $pdo; }
-    public function getAll() {
-        return $this->pdo->query("SELECT * FROM parties ORDER BY name ASC")->fetchAll();
+    public function getAll(): array {
+        return $this->pdo
+            ->query("SELECT * FROM parties ORDER BY name ASC")
+            ->fetchAll(PDO::FETCH_ASSOC);
     }
-    public function getById($id) {
-        $stmt = $this->pdo->prepare("SELECT * FROM parties WHERE id = ?");
-        $stmt->execute([$id]);
-        return $stmt->fetch();
-    }
-    public function add($name, $desc) {
-        $stmt = $this->pdo->prepare("INSERT INTO parties (name, description) VALUES (?, ?)");
+    public function add(string $name, ?string $desc = null): bool {
+        $stmt = $this->pdo->prepare("INSERT INTO parties (name,description) VALUES (?,?)");
         return $stmt->execute([$name, $desc]);
     }
-    public function update($id, $name, $desc) {
-        $stmt = $this->pdo->prepare("UPDATE parties SET name = ?, description = ? WHERE id = ?");
+    public function update(int $id, string $name, ?string $desc = null): bool {
+        $stmt = $this->pdo->prepare("UPDATE parties SET name=?,description=? WHERE id=?");
         return $stmt->execute([$name, $desc, $id]);
     }
-    public function delete($id) {
-        $stmt = $this->pdo->prepare("DELETE FROM parties WHERE id = ?");
+    public function delete(int $id): bool {
+        $stmt = $this->pdo->prepare("DELETE FROM parties WHERE id=?");
         return $stmt->execute([$id]);
     }
 }
 
+// --- Position CRUD ---
+
 class Position {
-    private $pdo;
-
-    public function __construct($pdo) {
-        $this->pdo = $pdo;
+    protected $pdo;
+    public function __construct($pdo) { $this->pdo = $pdo; }
+    public function getAll(): array {
+        return $this->pdo
+            ->query("SELECT * FROM positions ORDER BY position_name ASC")
+            ->fetchAll(PDO::FETCH_ASSOC);
     }
-
-    public function getAll() {
-        $stmt = $this->pdo->query("SELECT * FROM positions ORDER BY position_name");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function getById($id) {
-        $stmt = $this->pdo->prepare("SELECT * FROM positions WHERE id = ?");
-        $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    public function add($position_name) {
+    public function add(string $position_name): bool {
         $stmt = $this->pdo->prepare("INSERT INTO positions (position_name) VALUES (?)");
         return $stmt->execute([$position_name]);
     }
-
-    public function update($id, $position_name) {
-        $stmt = $this->pdo->prepare("UPDATE positions SET position_name = ? WHERE id = ?");
+    public function update(int $id, string $position_name): bool {
+        $stmt = $this->pdo->prepare("UPDATE positions SET position_name=? WHERE id=?");
         return $stmt->execute([$position_name, $id]);
     }
-
-    public function delete($id) {
-        $stmt = $this->pdo->prepare("DELETE FROM positions WHERE id = ?");
+    public function delete(int $id): bool {
+        $stmt = $this->pdo->prepare("DELETE FROM positions WHERE id=?");
         return $stmt->execute([$id]);
     }
 }

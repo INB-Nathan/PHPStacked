@@ -6,11 +6,24 @@ session_start();
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') exit;
 
 $party_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if (!$party_id) { echo "<div>No party selected.</div>"; exit; }
+if (!$party_id) {
+    echo "<div>No party selected.</div>";
+    exit;
+}
 
-// Fetch candidates for this party
+// Fetch candidates for this party, joining positions to get the name
 try {
-    $stmt = $pdo->prepare("SELECT name, position, bio, photo FROM candidates WHERE party_id = ? ORDER BY name ASC");
+    $stmt = $pdo->prepare("
+      SELECT
+        c.name,
+        p.position_name AS position,
+        c.bio,
+        c.photo
+      FROM candidates c
+      LEFT JOIN positions p ON c.position_id = p.id
+      WHERE c.party_id = ?
+      ORDER BY c.name ASC
+    ");
     $stmt->execute([$party_id]);
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {

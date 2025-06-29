@@ -1,58 +1,85 @@
 .admin-header {
-    background: #27ae60;           /* Main green background for header */
-    padding: 0;                    /* No extra padding */
-    border-radius: 24px;           /* Rounded corners for floating look */
-    margin: 16px auto;             /* Center header with margin */
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Subtle shadow for depth */
-    width: 100%;                   /* Take full width of container */
-    overflow: hidden;              /* Clip overflowing nav, fixes cut-off */
-    position: relative;
-}
-
-.admin-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: transparent;
-    padding-right: 24px;
-}
-
-.admin-nav ul {
-    list-style: none;              /* Remove default list bullets */
-    margin: 0;                     /* Remove default margin */
-    padding: 0;                    /* Remove horizontal padding */
-    display: flex;                 /* Horizontal layout for nav items */
-    justify-content: center;       /* Center nav items in header */
-    flex-wrap: nowrap;             /* Prevent nav items from wrapping */
-    overflow-x: auto;              /* Allow horizontal scroll if too many items */
-    background: transparent;       /* No background for nav container */
-}
-
-.admin-nav li {
-    text-align: center;            /* Center text in each nav item */
-    margin: 0;                     /* No extra margin */
-    white-space: nowrap;           /* Prevent nav text from wrapping */
-}
-
-.admin-nav a {
-    display: block;                /* Make link fill the nav item */
-    padding: 16px 32px;            /* Space around nav text */
-    color: #f5f6fa;                /* Light text color */
-    text-decoration: none;         /* Remove underline from links */
-    font-weight: bold;             /* Bold nav text */
-    transition: background 0.2s, color 0.2s; /* Smooth hover effect */
-    box-sizing: border-box;        /* Include padding in width */
-    border-radius: 16px;           /* Rounded highlight on hover/active */
-}
-
-.admin-nav li.active a,
-.admin-nav a:hover {
-    background: #abff2e;           /* Highlight color for active/hover */
-    color: #1d2b20;                /* Dark text on highlight */
-}
-
-#logoutNavBtn i {
-    margin-right: 7px;
-    font-size: 1em;
-    vertical-align: baseline;
-}
+    position: fixed;        /* Fix header at the top of the viewport */
+    top: 0;                 /* Align header to the very top */
+    width: 100%;            /* Span the full width of the page */
+    background: #ffffff;    /* White background for a clean look */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+    z-index: 1000;          /* Keep header above other content */
+  }
+  
+  /* Inner navigation flex container */
+  .admin-nav {
+    display: flex;              /* Use flexbox for layout */
+    align-items: center;        /* Vertically center items */
+    justify-content: space-between; /* Space logo and menu apart */
+    max-width: 1200px;          /* Limit width on large screens */
+    margin: 0 auto;             /* Center nav horizontally */
+    padding: 0 1rem;            /* Horizontal padding inside nav */
+    height: 60px;               /* Fixed height for consistent spacing */
+  }
+  
+  /* Logo link section */
+  .nav-logo .logo-link {
+    font-size: 1.25rem;   /* Larger text for branding */
+    font-weight: bold;    /* Bold font weight for emphasis */
+    color: #27ae60;       /* Brand green color */
+    text-decoration: none;/* Remove underline on link */
+  }
+  
+  /* Main menu list wrapper */
+  .nav-menu {
+    display: flex;        /* Flex layout for menu items */
+    list-style: none;     /* Remove default bullets */
+    margin: 0;            /* Reset default list margin */
+    padding: 0;           /* Reset default list padding */
+    gap: 1rem;            /* Space between each menu item */
+  }
+  
+  /* Individual menu item */
+  .nav-menu li {
+    position: relative;   /* Establish positioning context if needed */
+  }
+  
+  /* Menu links styling */
+  .nav-menu a {
+    display: block;                   /* Make entire area clickable */
+    padding: 0.75rem 1rem;            /* Vertical and horizontal padding */
+    color: #333333;                   /* Dark text color for contrast */
+    text-decoration: none;            /* Remove underline */
+    font-size: 1rem;                  /* Standard font size */
+    transition: background 0.2s, color 0.2s; /* Smooth hover transitions */
+    border-radius: 4px;               /* Rounded link corners */
+  }
+  
+  /* Active or hovered menu link state */
+  .nav-menu li.active > a,
+  .nav-menu a:hover {
+    background: #27ae60; /* Green background on hover/active */
+    color: #ffffff;      /* White text on hover/active */
+  }
+  
+  /* Logout link container */
+  .nav-logout a {
+    display: flex;                    /* Flex to align icon + text */
+    align-items: center;              /* Vertically center icon/text */
+    padding: 0.75rem 1rem;            /* Padding around link */
+    color: #e74c3c;                   /* Red color to indicate logout */
+    text-decoration: none;            /* Remove underline */
+    font-weight: 600;                 /* Semi-bold text */
+    transition: color 0.2s;           /* Smooth color change on hover */
+  }
+  
+  /* Logout hover state */
+  .nav-logout a:hover {
+    color: #c0392b; /* Darker red on hover */
+  }
+  
+  /* Icon within the logout link */
+  .nav-logout i {
+    margin-right: 0.5rem; /* Spacing between icon and text */
+    font-size: 1rem;      /* Icon size matching text */
+  }
+  
+  body {
+    padding-top: 60px; /* Offset body content by header height */
+  }

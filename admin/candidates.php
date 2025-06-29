@@ -18,14 +18,23 @@ $message = '';
 $message_type = ''; // 'success' or 'error'
 
 // Variables for the form (for both add and edit)
-$candidate_id = null; // ID ng candidate, null if adding
-$name = ''; // Name ng candidate
-$position = ''; // Position na tinatakbuhan
-$description = ''; // Description or platform
-$photo_path = null; // Path ng photo ng candidate (for editing)
+$candidate_id = null;     // ID ng candidate, null if adding
+$name         = '';       // Name ng candidate
+$position     = '';       // Position na tinatakbuhan (unused when using ID)
+$position_id  = null;     // Position ID na tinatakbuhan
+$party_id     = null;     // Party ID kung meron
+$description  = '';       // Description or platform
+$photo_path   = null;     // Path ng photo ng candidate (for editing)
 
 // Determine if we are adding or editing a candidate
 $is_editing = false; // Default is not editing (meaning, adding)
+
+// fetch list of pos. and parties for dropdowns
+$positionObj    = new Position($pdo);
+$position_list  = $positionObj->getAll();
+$partyObj       = new Party($pdo);
+$party_list     = $partyObj->getAll();
+
 // If may 'action' na 'edit' and may 'id' sa URL (GET request)
 if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
     // Sanitize and validate the candidate ID
@@ -37,27 +46,26 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
 
         // Check if getCandidateById returned an error string
         if (is_string($candidate_to_edit)) {
-            $message = $candidate_to_edit; // Display the specific error
+            $message      = $candidate_to_edit; // Display the specific error
             $message_type = 'error';
-            $candidate_id = null;
-            $is_editing = false;
         } elseif ($candidate_to_edit) {
-            $is_editing = true; // Set to true because we are editing
+            $is_editing   = true; // Set to true because we are editing
             // Populate the form variables with the current candidate's data
-            $name = $candidate_to_edit['name'];
-            $position = $candidate_to_edit['position'];
-            $description = $candidate_to_edit['description'];
-            $photo_path = $candidate_to_edit['photo_path'];
+            $name         = $candidate_to_edit['name'];
+            $position_id  = $candidate_to_edit['position_id'];
+            $party_id     = $candidate_to_edit['party_id'];
+            $description  = $candidate_to_edit['description'];
+            $photo_path   = $candidate_to_edit['photo_path'];
         } else {
             // If hindi nahanap ang candidate
-            $message = 'Candidate not found.';
+            $message      = 'Candidate not found.';
             $message_type = 'error';
             $candidate_id = null; // Reset ID to avoid showing empty edit form
-            $is_editing = false; // Reset to false
+            $is_editing   = false; // Reset to false
         }
     } else {
         // If invalid ang candidate ID
-        $message = 'Invalid candidate ID.';
+        $message      = 'Invalid candidate ID.';
         $message_type = 'error';
     }
 }
@@ -66,111 +74,107 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the action from the POST data
     $action = $_POST['action'] ?? '';
-
     // Define a default election ID for now.
-    $default_election_id = 1; 
+    $default_election_id = 1;
+
+    // Common form inputs
+    $name        = trim($_POST['name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+
+    // Get selected IDs from dropdowns
+    $position_id = filter_input(INPUT_POST, 'position_id', FILTER_VALIDATE_INT);
+    $party_id    = filter_input(INPUT_POST, 'party_id',    FILTER_VALIDATE_INT);
+
+    // Get the current photo path (only for update)
+    $current_photo_path  = $_POST['current_photo_path'] ?? null;
+    $uploaded_photo_path = $current_photo_path;
 
     // If the action is 'add' or 'update'
     if ($action === 'add' || $action === 'update') {
-        // Get and trim the data from the form
-        $name = trim($_POST['name'] ?? '');
-        $position = trim($_POST['position'] ?? '');
-        $description = trim($_POST['description'] ?? '');
-        // Get the current photo path (only for update)
-        $current_photo_path = $_POST['current_photo_path'] ?? null; 
-
         // Check if may kulang na field
-        if (empty($name) || empty($position) || empty($description)) {
-            $message = 'All fields are required.';
+        if (empty($name) || empty($position_id) || empty($description)) {
+            $message      = 'All fields are required.';
             $message_type = 'error';
             // If it's an update and fields are empty, re-populate the form with existing data
             if ($action === 'update' && $candidate_id) {
                 $candidate_to_edit = getCandidateById($candidate_id);
                 // Check if getCandidateById returned an error string
                 if (is_string($candidate_to_edit)) {
-                    $message = $candidate_to_edit; // Display the specific error
+                    $message      = $candidate_to_edit; // Display the specific error
                     $message_type = 'error';
                 } elseif ($candidate_to_edit) {
-                    $name = $candidate_to_edit['name'];
-                    $position = $candidate_to_edit['position'];
+                    $name        = $candidate_to_edit['name'];
+                    $position_id = $candidate_to_edit['position_id'];
+                    $party_id    = $candidate_to_edit['party_id'];
                     $description = $candidate_to_edit['description'];
-                    $photo_path = $candidate_to_edit['photo_path'];
+                    $photo_path  = $candidate_to_edit['photo_path'];
                 }
             }
         } else {
-            // Default photo path is the current path (for update)
-            $uploaded_photo_path = $current_photo_path; 
-
             // Handle file upload
-            // If may in-upload na photo and walang error sa pag-upload
+            // If may in-upload na photo at walang error sa pag-upload
             if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-                // Target directory for candidate photos
-                $target_dir = '../uploads/candidates/';
-                // If the directory doesn't exist yet, create it
-                if (!is_dir($target_dir)) {
-                    mkdir($target_dir, 0777, true);
-                }
-
-                // Get the file extension
-                $file_extension = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
-                // Create a unique filename to avoid conflicts
-                $new_file_name = uniqid('candidate_') . '.' . $file_extension;
-                // Build the complete path of the target file
-                $target_file = $target_dir . $new_file_name;
-
-                // Check if the file is a real image
-                $check = getimagesize($_FILES['photo']['tmp_name']);
-                if ($check !== false) {
-                    // Move the uploaded file to the target directory
-                    if (move_uploaded_file($_FILES['photo']['tmp_name'], $target_file)) {
-                        // If updating and there's an old photo, delete it
-                        if ($action === 'update' && $current_photo_path && file_exists(__DIR__ . '/../' . $current_photo_path)) {
-                            unlink(__DIR__ . '/../' . $current_photo_path);
-                        }
-                        // Set the new photo path for the database
-                        $uploaded_photo_path = 'uploads/candidates/' . $new_file_name;
-                    } else {
-                        // If may error sa pag-upload
-                        $message = 'Error uploading photo.';
-                        $message_type = 'error';
-                    }
-                } else {
-                    // If the uploaded file is not an image
-                    $message = 'Uploaded file is not an image.';
+                // Use helper from functions.php
+                $upload_error = '';
+                $new_path = handleFileUpload($_FILES['photo'], 'uploads/candidates/', $upload_error);
+                if ($new_path === null) {
+                    // If may error sa pag-upload
+                    $message      = $upload_error;
                     $message_type = 'error';
+                } else {
+                    // If updating and there's an old photo, delete it
+                    if ($action === 'update' && $current_photo_path) {
+                        deleteFile($current_photo_path);
+                    }
+                    $uploaded_photo_path = $new_path;
                 }
             }
 
             // If walang error sa message (meaning, no file upload errors)
-            if (empty($message_type)) { 
+            if (empty($message_type)) {
                 // If the action is 'add'
                 if ($action === 'add') {
-                    // Call the addCandidate function with election_id
-                    $result = addCandidate($default_election_id, $name, $position, $description, $uploaded_photo_path);
+                    // Call the addCandidate function with election_id, position_id, party_id
+                    $result = addCandidate(
+                        $default_election_id,
+                        $name,
+                        $position_id,
+                        $party_id,
+                        $description,
+                        $uploaded_photo_path
+                    );
                     if ($result === true) {
-                        $message = 'Candidate added successfully!';
+                        $message      = 'Candidate added successfully!';
                         $message_type = 'success';
                         // Clear form fields after successful add
-                        $name = '';
-                        $position = '';
-                        $description = '';
-                        $photo_path = null;
+                        $name         = '';
+                        $position_id  = null;
+                        $party_id     = null;
+                        $description  = '';
+                        $photo_path   = null;
                     } else {
                         // If hindi na-add ang candidate (result is an error string)
-                        $message = $result; // Display the specific error message
+                        $message      = $result; // Display the specific error message
                         $message_type = 'error';
                     }
                 } elseif ($action === 'update') { // If the action is 'update'
                     // Call the updateCandidate function
-                    $result = updateCandidate($candidate_id, $name, $position, $description, $uploaded_photo_path);
+                    $result = updateCandidate(
+                        $candidate_id,
+                        $name,
+                        $position_id,
+                        $party_id,
+                        $description,
+                        $uploaded_photo_path
+                    );
                     if ($result === true) {
-                        $message = 'Candidate updated successfully!';
+                        $message      = 'Candidate updated successfully!';
                         $message_type = 'success';
                         // Update the current photo_path variable for display
-                        $photo_path = $uploaded_photo_path;
+                        $photo_path   = $uploaded_photo_path;
                     } else {
                         // If hindi na-update ang candidate (result is an error string)
-                        $message = $result; // Display the specific error message
+                        $message      = $result; // Display the specific error message
                         $message_type = 'error';
                     }
                 }
@@ -184,16 +188,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Call the deleteCandidate function
             $result = deleteCandidate($candidate_id_to_delete);
             if ($result === true) {
-                $message = 'Candidate deleted successfully!';
+                $message      = 'Candidate deleted successfully!';
                 $message_type = 'success';
             } else {
                 // If hindi na-delete ang candidate (result is an error string)
-                $message = $result; // Display the specific error message
+                $message      = $result; // Display the specific error message
                 $message_type = 'error';
             }
         } else {
             // If invalid ang candidate ID
-            $message = 'Invalid candidate ID for deletion.';
+            $message      = 'Invalid candidate ID for deletion.';
             $message_type = 'error';
         }
     }
@@ -203,9 +207,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $candidates = getCandidates(); 
 // Check if getCandidates returned an error string
 if (is_string($candidates)) {
-    $message = $candidates; // Display the specific error
+    $message      = $candidates; // Display the specific error
     $message_type = 'error';
-    $candidates = []; // Ensure $candidates is an empty array to prevent issues in the loop
+    $candidates   = []; // Ensure $candidates is an empty array to prevent issues in the loop
 }
 ?>
 <!DOCTYPE html>
@@ -233,7 +237,7 @@ if (is_string($candidates)) {
     <div class="container">
         <h1>Candidate Management</h1>
 
-        <?php if ($message): // If may message, show it ?>
+        <?php if ($message): // If may message, show ito ?>
             <div class="message <?php echo $message_type; ?>">
                 <?php echo $message; ?>
             </div>
@@ -251,14 +255,36 @@ if (is_string($candidates)) {
                         <label for="name">Candidate Name:</label>
                         <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($name); ?>" required>
                     </div>
+
                     <div class="form-group">
-                        <label for="position">Position:</label>
-                        <input type="text" id="position" name="position" value="<?php echo htmlspecialchars($position); ?>" required>
+                        <label for="position_id">Position:</label>
+                        <select id="position_id" name="position_id" required>
+                            <?php foreach ($position_list as $pos_item): ?>
+                                <option value="<?php echo htmlspecialchars($pos_item['id']); ?>"
+                                    <?php echo ($position_id === $pos_item['id']) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($pos_item['position_name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
+
+                    <div class="form-group">
+                        <label for="party_id">Partylist:</label>
+                        <select id="party_id" name="party_id" required>
+                            <?php foreach ($party_list as $p): ?>
+                                <option value="<?php echo htmlspecialchars($p['id']); ?>"
+                                    <?php echo ($party_id === $p['id']) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($p['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
                     <div class="form-group">
                         <label for="description">Description/Platform:</label>
                         <textarea id="description" name="description" required><?php echo htmlspecialchars($description); ?></textarea>
                     </div>
+
                     <div class="form-group">
                         <label for="photo">Candidate Photo:</label>
                         <?php if ($photo_path): // If may photo na ?>
@@ -269,6 +295,7 @@ if (is_string($candidates)) {
                         <?php endif; ?>
                         <input type="file" id="photo" name="photo" accept="image/*">
                     </div>
+
                     <div class="form-actions">
                         <button type="submit" class="update-btn">Update Candidate</button>
                     </div>
@@ -283,18 +310,39 @@ if (is_string($candidates)) {
                         <label for="name">Candidate Name:</label>
                         <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($name); ?>" required>
                     </div>
+
                     <div class="form-group">
-                        <label for="position">Position:</label>
-                        <input type="text" id="position" name="position" value="<?php echo htmlspecialchars($position); ?>" required>
+                        <label for="position_id">Position:</label>
+                        <select id="position_id" name="position_id" required>
+                            <?php foreach ($position_list as $pos_item): ?>
+                                <option value="<?php echo htmlspecialchars($pos_item['id']); ?>">
+                                    <?php echo htmlspecialchars($pos_item['position_name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
+
+                    <div class="form-group">
+                        <label for="party_id">Partylist:</label>
+                        <select id="party_id" name="party_id" required>
+                            <?php foreach ($party_list as $p): ?>
+                                <option value="<?php echo htmlspecialchars($p['id']); ?>">
+                                    <?php echo htmlspecialchars($p['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
                     <div class="form-group">
                         <label for="description">Description/Platform:</label>
                         <textarea id="description" name="description" required><?php echo htmlspecialchars($description); ?></textarea>
                     </div>
+
                     <div class="form-group">
                         <label for="photo">Candidate Photo (optional):</label>
                         <input type="file" id="photo" name="photo" accept="image/*">
                     </div>
+
                     <div class="form-actions">
                         <button type="submit">Add Candidate</button>
                     </div>
@@ -307,12 +355,11 @@ if (is_string($candidates)) {
 
         <h2>Existing Candidates</h2>
         <div class="action-buttons" style="text-align: left; margin-bottom: 20px;">
-             <!-- Link para bumalik sa add form if currently editing and user wants to add new -->
+            <!-- Link para bumalik sa add form if currently editing and user wants to add new -->
             <?php if ($is_editing): ?>
                 <a href="candidates.php">Add New Candidate</a>
             <?php endif; ?>
         </div>
-
 
         <?php if (!empty($candidates)): // If may mga candidates, show sa table ?>
             <table class="candidates-table">
@@ -321,6 +368,7 @@ if (is_string($candidates)) {
                         <th>Photo</th>
                         <th>Name</th>
                         <th>Position</th>
+                        <th>Partylist</th>
                         <th>Description/Platform</th>
                         <th>Actions</th>
                     </tr>
@@ -337,6 +385,7 @@ if (is_string($candidates)) {
                             </td>
                             <td><?php echo htmlspecialchars($candidate_row['name']); ?></td>
                             <td><?php echo htmlspecialchars($candidate_row['position']); ?></td>
+                            <td><?php echo htmlspecialchars($candidate_row['partylist']) ?: ''; ?></td>
                             <td><?php echo htmlspecialchars(substr($candidate_row['description'], 0, 100)) . (strlen($candidate_row['description']) > 100 ? '...' : ''); ?></td>
                             <td class="actions">
                                 <a href="candidates.php?action=edit&id=<?php echo htmlspecialchars($candidate_row['id']); ?>" class="edit-btn">Edit</a>
