@@ -1,85 +1,104 @@
 .admin-header {
-    position: fixed;        /* Fix header at the top of the viewport */
-    top: 0;                 /* Align header to the very top */
-    width: 100%;            /* Span the full width of the page */
-    background: #ffffff;    /* White background for a clean look */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow for depth */
-    z-index: 1000;          /* Keep header above other content */
-  }
+  position: fixed;        /* Fix header at the top of the viewport */
+  top: 0;                 /* Align header to the very top */
+  width: 100%;            /* Span the full width of the page */
+  background: #ffffff;    /* White background for a clean look */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+  z-index: 1000;          /* Keep header above other content */
+}
   
-  /* Inner navigation flex container */
-  .admin-nav {
-    display: flex;              /* Use flexbox for layout */
-    align-items: center;        /* Vertically center items */
-    justify-content: space-between; /* Space logo and menu apart */
-    max-width: 1200px;          /* Limit width on large screens */
-    margin: 0 auto;             /* Center nav horizontally */
-    padding: 0 1rem;            /* Horizontal padding inside nav */
-    height: 60px;               /* Fixed height for consistent spacing */
-  }
+/* Inner navigation flex container */
+.admin-nav {
+  display: flex;              /* Use flexbox for layout */
+  align-items: stretch;       /* Stretch items to fill height */
+  justify-content: space-between; /* Space logo and menu apart */
+  max-width: 1200px;          /* Limit width on large screens */
+  margin: 0 auto;             /* Center nav horizontally */
+  padding: 0 1rem;            /* Horizontal padding inside nav */
+  height: 60px;               /* Fixed height for consistent spacing */
+}
   
-  /* Logo link section */
-  .nav-logo .logo-link {
-    font-size: 1.25rem;   /* Larger text for branding */
-    font-weight: bold;    /* Bold font weight for emphasis */
-    color: #27ae60;       /* Brand green color */
-    text-decoration: none;/* Remove underline on link */
-  }
+/* Logo link section */
+.nav-logo .logo-link {
+  font-size: 1.25rem;   /* Larger text for branding */
+  font-weight: bold;    /* Bold font weight for emphasis */
+  color: #27ae60;       /* Brand green color */
+  text-decoration: none;/* Remove underline on link */
+  height: 60px;         /* Match height of navbar */
+  display: flex;        /* Use flex for vertical centering */
+  align-items: center;  /* Center content vertically */
+}
   
-  /* Main menu list wrapper */
-  .nav-menu {
-    display: flex;        /* Flex layout for menu items */
-    list-style: none;     /* Remove default bullets */
-    margin: 0;            /* Reset default list margin */
-    padding: 0;           /* Reset default list padding */
-    gap: 1rem;            /* Space between each menu item */
-  }
+/* Main menu list wrapper */
+.nav-menu {
+  display: flex;        /* Flex layout for menu items */
+  list-style: none;     /* Remove default bullets */
+  margin: 0;            /* Reset default list margin */
+  padding: 0;           /* Reset default list padding */
+  gap: 1rem;            /* Space between each menu item */
+  height: 60px;         /* Match height of navbar */
+}
   
-  /* Individual menu item */
-  .nav-menu li {
-    position: relative;   /* Establish positioning context if needed */
-  }
+/* Individual menu item */
+.nav-menu li {
+  position: relative;   /* Establish positioning context if needed */
+  display: flex;        /* Use flex for alignment */
+  align-items: center;  /* Center item vertically */
+}
   
-  /* Menu links styling */
-  .nav-menu a {
-    display: block;                   /* Make entire area clickable */
-    padding: 0.75rem 1rem;            /* Vertical and horizontal padding */
-    color: #333333;                   /* Dark text color for contrast */
-    text-decoration: none;            /* Remove underline */
-    font-size: 1rem;                  /* Standard font size */
-    transition: background 0.2s, color 0.2s; /* Smooth hover transitions */
-    border-radius: 4px;               /* Rounded link corners */
-  }
+/* Menu links styling */
+.nav-menu a {
+  display: inline-flex;          /* Use inline-flex for better text handling */
+  align-items: center;           /* Center content vertically */
+  justify-content: center;       /* Center content horizontally */
+  padding: 0.5rem 1rem;          /* Padding around content */
+  color: #333333;                /* Dark text color for contrast */
+  text-decoration: none;         /* Remove underline */
+  font-size: 1rem;               /* Standard font size */
+  transition: background 0.2s, color 0.2s; /* Smooth hover transitions */
+  border-radius: 4px;            /* Rounded link corners */
+  text-align: center;            /* Center text */
+  height: 36px;                  /* Fixed height for all menu links */
+  max-width: 100%;               /* Respect parent width */
+}
   
-  /* Active or hovered menu link state */
-  .nav-menu li.active > a,
-  .nav-menu a:hover {
-    background: #27ae60; /* Green background on hover/active */
-    color: #ffffff;      /* White text on hover/active */
-  }
+/* Active or hovered menu link state */
+.nav-menu li.active > a,
+.nav-menu a:hover {
+  background: #27ae60; /* Green background on hover/active */
+  color: #ffffff;      /* White text on hover/active */
+}
   
-  /* Logout link container */
-  .nav-logout a {
-    display: flex;                    /* Flex to align icon + text */
-    align-items: center;              /* Vertically center icon/text */
-    padding: 0.75rem 1rem;            /* Padding around link */
-    color: #e74c3c;                   /* Red color to indicate logout */
-    text-decoration: none;            /* Remove underline */
-    font-weight: 600;                 /* Semi-bold text */
-    transition: color 0.2s;           /* Smooth color change on hover */
-  }
+/* Logout link container */
+.nav-logout {
+  display: flex;        /* Use flex */
+  align-items: center;  /* Center vertically */
+  height: 60px;         /* Match height of navbar */
+}
+
+.nav-logout a {
+  display: inline-flex;           /* Use inline-flex for better text handling */
+  align-items: center;            /* Center content vertically */
+  padding: 0.5rem 1rem;           /* Padding around content */
+  color: #e74c3c;                 /* Red color to indicate logout */
+  text-decoration: none;          /* Remove underline */
+  font-weight: 600;               /* Semi-bold text */
+  transition: color 0.2s;         /* Smooth color change on hover */
+  height: 36px;                   /* Match height with menu links */
+  border-radius: 4px;             /* Rounded corners */
+}
   
-  /* Logout hover state */
-  .nav-logout a:hover {
-    color: #c0392b; /* Darker red on hover */
-  }
+/* Logout hover state */
+.nav-logout a:hover {
+  color: #c0392b; /* Darker red on hover */
+}
   
-  /* Icon within the logout link */
-  .nav-logout i {
-    margin-right: 0.5rem; /* Spacing between icon and text */
-    font-size: 1rem;      /* Icon size matching text */
-  }
+/* Icon within the logout link */
+.nav-logout i {
+  margin-right: 0.5rem; /* Spacing between icon and text */
+  font-size: 1rem;      /* Icon size matching text */
+}
   
-  body {
-    padding-top: 60px; /* Offset body content by header height */
-  }
+body {
+  padding-top: 60px; /* Offset body content by header height */
+}

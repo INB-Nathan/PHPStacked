@@ -16,6 +16,7 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     <link rel="stylesheet" href="../css/admin_header.css">
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
     <?php adminHeader('statistics'); ?>

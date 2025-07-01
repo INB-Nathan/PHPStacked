@@ -22,6 +22,12 @@ function adminHeader($active = '') {
       <li class="<?php echo ($active === 'statistics')  ? 'active' : ''; ?>">
         <a href="statistics.php">Vote Statistics</a>
       </li>
+      <li class="<?php echo ($active === 'election')  ? 'active' : ''; ?>">
+        <a href="election.php">Election Management</a>
+      </li>
+      <li class="<?php echo ($active === 'database')  ? 'active' : ''; ?>">
+        <a href="database_settings.php">Database Settings</a>
+      </li>
     </ul>
     <div class="nav-logout">
       <a href="#" id="logoutNavBtn">

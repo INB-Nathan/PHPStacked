@@ -61,6 +61,14 @@
                 <i class="fa-solid fa-chart-bar"></i>
                 <span>Vote Statistics</span>
             </li>
+            <li onclick="location.href='election.php'">
+                <i class="fa-solid fa-book-open"></i>
+                <span>Elections</span>
+            </li>
+            <li onclick="location.href='database_settings.php'">
+                <i class="fa-solid fa-database"></i>
+                <span>Database Settings</span>
+            </li>
         </ul>
     </div>
     <script>

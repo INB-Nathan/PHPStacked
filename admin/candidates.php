@@ -25,6 +25,7 @@ $position_id  = null;     // Position ID na tinatakbuhan
 $party_id     = null;     // Party ID kung meron
 $description  = '';       // Description or platform
 $photo_path   = null;     // Path ng photo ng candidate (for editing)
+$election_id  = null;     // Election ID that this candidate belongs to
 
 // Determine if we are adding or editing a candidate
 $is_editing = false; // Default is not editing (meaning, adding)
@@ -34,6 +35,8 @@ $positionObj    = new Position($pdo);
 $position_list  = $positionObj->getAll();
 $partyObj       = new Party($pdo);
 $party_list     = $partyObj->getAll();
+$electionObj    = new Election($pdo);
+$election_list  = $electionObj->getAll();
 
 // If may 'action' na 'edit' and may 'id' sa URL (GET request)
 if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
@@ -56,6 +59,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
             $party_id     = $candidate_to_edit['party_id'];
             $description  = $candidate_to_edit['description'];
             $photo_path   = $candidate_to_edit['photo_path'];
+            $election_id  = $candidate_to_edit['election_id'];
+            
+            // Get positions specific to this election
+            $position_list = $positionObj->getAll($election_id);
+            // Get parties specific to this election
+            $party_list = $partyObj->getAll($election_id);
         } else {
             // If hindi nahanap ang candidate
             $message      = 'Candidate not found.';
@@ -74,8 +83,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the action from the POST data
     $action = $_POST['action'] ?? '';
-    // Define a default election ID for now.
-    $default_election_id = 1;
 
     // Common form inputs
     $name        = trim($_POST['name'] ?? '');
@@ -84,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get selected IDs from dropdowns
     $position_id = filter_input(INPUT_POST, 'position_id', FILTER_VALIDATE_INT);
     $party_id    = filter_input(INPUT_POST, 'party_id',    FILTER_VALIDATE_INT);
+    $election_id = filter_input(INPUT_POST, 'election_id', FILTER_VALIDATE_INT);
 
     // Get the current photo path (only for update)
     $current_photo_path  = $_POST['current_photo_path'] ?? null;
@@ -92,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // If the action is 'add' or 'update'
     if ($action === 'add' || $action === 'update') {
         // Check if may kulang na field
-        if (empty($name) || empty($position_id) || empty($description)) {
+        if (empty($name) || empty($position_id) || empty($description) || empty($election_id)) {
             $message      = 'All fields are required.';
             $message_type = 'error';
             // If it's an update and fields are empty, re-populate the form with existing data
@@ -108,6 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $party_id    = $candidate_to_edit['party_id'];
                     $description = $candidate_to_edit['description'];
                     $photo_path  = $candidate_to_edit['photo_path'];
+                    $election_id = $candidate_to_edit['election_id'];
                 }
             }
         } else {
@@ -136,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($action === 'add') {
                     // Call the addCandidate function with election_id, position_id, party_id
                     $result = addCandidate(
-                        $default_election_id,
+                        $election_id,
                         $name,
                         $position_id,
                         $party_id,
@@ -150,6 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $name         = '';
                         $position_id  = null;
                         $party_id     = null;
+                        $election_id  = null;
                         $description  = '';
                         $photo_path   = null;
                     } else {
@@ -201,6 +211,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message_type = 'error';
         }
     }
+    
+    if ($action === 'get_positions_by_election') {
+        header('Content-Type: application/json');
+        $election_id = filter_input(INPUT_POST, 'election_id', FILTER_VALIDATE_INT);
+        if ($election_id) {
+            $positions = $positionObj->getAll($election_id);
+            echo json_encode($positions);
+            exit;
+        }
+        echo json_encode([]);
+        exit;
+    }
+    
+    if ($action === 'get_parties_by_election') {
+        header('Content-Type: application/json');
+        $election_id = filter_input(INPUT_POST, 'election_id', FILTER_VALIDATE_INT);
+        if ($election_id) {
+            $parties = $partyObj->getAll($election_id);
+            echo json_encode($parties);
+            exit;
+        }
+        echo json_encode([]);
+        exit;
+    }
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'get_positions_by_election') {
+    header('Content-Type: application/json');
+    $election_id = filter_input(INPUT_GET, 'election_id', FILTER_VALIDATE_INT);
+    if ($election_id) {
+        $positions = $positionObj->getAll($election_id);
+        echo json_encode($positions);
+        exit;
+    }
+    echo json_encode([]);
+    exit;
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'get_parties_by_election') {
+    header('Content-Type: application/json');
+    $election_id = filter_input(INPUT_GET, 'election_id', FILTER_VALIDATE_INT);
+    if ($election_id) {
+        $parties = $partyObj->getAll($election_id);
+        echo json_encode($parties);
+        exit;
+    }
+    echo json_encode([]);
+    exit;
 }
 
 // Get all candidates (after any modifications)
@@ -222,6 +280,7 @@ if (is_string($candidates)) {
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/candidates.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
     <?php adminHeader('candidates'); ?>
@@ -257,11 +316,24 @@ if (is_string($candidates)) {
                     </div>
 
                     <div class="form-group">
+                        <label for="election_id">Election:</label>
+                        <select id="election_id" name="election_id" required onchange="updatePositionsAndParties()">
+                            <?php foreach ($election_list as $election): ?>
+                                <option value="<?php echo htmlspecialchars($election['id']); ?>"
+                                    <?php echo ($election_id == $election['id']) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($election['title']); ?> 
+                                    (<?php echo htmlspecialchars($election['status']); ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label for="position_id">Position:</label>
                         <select id="position_id" name="position_id" required>
                             <?php foreach ($position_list as $pos_item): ?>
                                 <option value="<?php echo htmlspecialchars($pos_item['id']); ?>"
-                                    <?php echo ($position_id === $pos_item['id']) ? 'selected' : ''; ?>>
+                                    <?php echo ($position_id == $pos_item['id']) ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($pos_item['position_name']); ?>
                                 </option>
                             <?php endforeach; ?>
@@ -273,7 +345,7 @@ if (is_string($candidates)) {
                         <select id="party_id" name="party_id" required>
                             <?php foreach ($party_list as $p): ?>
                                 <option value="<?php echo htmlspecialchars($p['id']); ?>"
-                                    <?php echo ($party_id === $p['id']) ? 'selected' : ''; ?>>
+                                    <?php echo ($party_id == $p['id']) ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($p['name']); ?>
                                 </option>
                             <?php endforeach; ?>
@@ -288,7 +360,7 @@ if (is_string($candidates)) {
                     <div class="form-group">
                         <label for="photo">Candidate Photo:</label>
                         <?php if ($photo_path): // If may photo na ?>
-                            <img src="../<?php echo htmlspecialchars($photo_path); ?>" alt="Current Candidate Photo">
+                            <img src="../<?php echo htmlspecialchars($photo_path); ?>" alt="Current Candidate Photo" style="max-width: 200px; margin: 10px 0;">
                             <p>Current photo. Upload new to change.</p>
                         <?php else: // If walang photo ?>
                             <p>No photo uploaded yet.</p>
@@ -312,14 +384,24 @@ if (is_string($candidates)) {
                     </div>
 
                     <div class="form-group">
-                        <label for="position_id">Position:</label>
-                        <select id="position_id" name="position_id" required>
-                            <?php foreach ($position_list as $pos_item): ?>
-                                <option value="<?php echo htmlspecialchars($pos_item['id']); ?>">
-                                    <?php echo htmlspecialchars($pos_item['position_name']); ?>
+                        <label for="election_id">Election:</label>
+                        <select id="election_id" name="election_id" required onchange="updatePositionsAndParties()">
+                            <option value="">-- Select Election --</option>
+                            <?php foreach ($election_list as $election): ?>
+                                <option value="<?php echo htmlspecialchars($election['id']); ?>">
+                                    <?php echo htmlspecialchars($election['title']); ?> 
+                                    (<?php echo htmlspecialchars($election['status']); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="position_id">Position:</label>
+                        <select id="position_id" name="position_id" required disabled>
+                            <option value="">-- Select Election First --</option>
+                        </select>
+                        <div id="position-loading" style="display:none;">Loading positions...</div>
                     </div>
 
                     <div class="form-group">
@@ -331,6 +413,7 @@ if (is_string($candidates)) {
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <div id="party-loading" style="display:none;">Loading parties...</div>
                     </div>
 
                     <div class="form-group">
@@ -367,6 +450,7 @@ if (is_string($candidates)) {
                     <tr>
                         <th>Photo</th>
                         <th>Name</th>
+                        <th>Election</th>
                         <th>Position</th>
                         <th>Partylist</th>
                         <th>Description/Platform</th>
@@ -384,6 +468,18 @@ if (is_string($candidates)) {
                                 <?php endif; ?>
                             </td>
                             <td><?php echo htmlspecialchars($candidate_row['name']); ?></td>
+                            <td>
+                                <?php 
+                                    $election_title = "Unknown";
+                                    foreach ($election_list as $election) {
+                                        if ($election['id'] == $candidate_row['election_id']) {
+                                            $election_title = $election['title'];
+                                            break;
+                                        }
+                                    }
+                                    echo htmlspecialchars($election_title);
+                                ?>
+                            </td>
                             <td><?php echo htmlspecialchars($candidate_row['position']); ?></td>
                             <td><?php echo htmlspecialchars($candidate_row['partylist']) ?: ''; ?></td>
                             <td><?php echo htmlspecialchars(substr($candidate_row['description'], 0, 100)) . (strlen($candidate_row['description']) > 100 ? '...' : ''); ?></td>
@@ -403,6 +499,7 @@ if (is_string($candidates)) {
             <p style="text-align: center; margin-top: 50px;">No candidates found.</p>
         <?php endif; ?>
     </div>
+
     <script>
         document.getElementById('logoutNavBtn').onclick = function(e) {
             e.preventDefault();
@@ -414,6 +511,91 @@ if (is_string($candidates)) {
         document.getElementById('logoutModal').onclick = function(e) {
             if (e.target === this) this.classList.remove('active');
         };
+        
+        function updatePositionsAndParties() {
+            const electionId = document.getElementById('election_id').value;
+            const positionDropdown = document.getElementById('position_id');
+            const partyDropdown = document.getElementById('party_id');
+            const positionLoading = document.getElementById('position-loading');
+            const partyLoading = document.getElementById('party-loading');
+            
+            if (!electionId) {
+                positionDropdown.disabled = true;
+                positionDropdown.innerHTML = '<option value="">-- Select Election First --</option>';
+                return;
+            }
+            
+            positionDropdown.disabled = true;
+            positionLoading.style.display = 'block';
+            
+            fetch(`candidates.php?action=get_positions_by_election&election_id=${electionId}`)
+                .then(response => response.json())
+                .then(positions => {
+                    positionLoading.style.display = 'none';
+                    positionDropdown.disabled = false;
+                    
+                    positionDropdown.innerHTML = '';
+                    
+                    if (positions.length === 0) {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'No positions available for this election';
+                        positionDropdown.appendChild(option);
+                        positionDropdown.disabled = true;
+                    } else {
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = '-- Select Position --';
+                        positionDropdown.appendChild(defaultOption);
+                        
+                        positions.forEach(position => {
+                            const option = document.createElement('option');
+                            option.value = position.id;
+                            option.textContent = position.position_name;
+                            positionDropdown.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching positions:', error);
+                    positionLoading.style.display = 'none';
+                    positionDropdown.innerHTML = '<option value="">Error loading positions</option>';
+                });
+                
+            partyLoading.style.display = 'block';
+            fetch(`candidates.php?action=get_parties_by_election&election_id=${electionId}`)
+                .then(response => response.json())
+                .then(parties => {
+                    partyLoading.style.display = 'none';
+                    
+                    partyDropdown.innerHTML = '';
+                    
+                    const independentOption = document.createElement('option');
+                    independentOption.value = '1';
+                    independentOption.textContent = 'Independent';
+                    partyDropdown.appendChild(independentOption);
+                    
+                    parties.forEach(party => {
+                        if (party.name.toLowerCase() === 'independent') return;
+                        
+                        const option = document.createElement('option');
+                        option.value = party.id;
+                        option.textContent = party.name;
+                        partyDropdown.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching parties:', error);
+                    partyLoading.style.display = 'none';
+                });
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const electionDropdown = document.getElementById('election_id');
+            if (electionDropdown.value) {
+                updatePositionsAndParties();
+            }
+        });
     </script>
 </body>
 </html>
