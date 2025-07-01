@@ -1,0 +1,60 @@
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-weight: bold;
+    text-align: center;
+    width: 90%;
+    margin: 0 auto;
+}
+
+.status-upcoming {
+    background-color: #f39c12;
+    color: #fff;
+}
+
+.status-active {
+    background-color: #27ae60;
+    color: #fff;
+}
+
+.status-completed {
+    background-color: #3498db;
+    color: #fff;
+}
+
+.status-cancelled {
+    background-color: #e74c3c;
+    color: #fff;
+}
+
+input[type="datetime-local"] {
+    padding: 10px 12px;
+    border: 1px solid #e3e3e3;
+    border-radius: 8px;
+    font-size: 1.07em;
+    background: #f5f6fa;
+    color: #1d2b20;
+    transition: border-color 0.2s;
+}
+
+input[type="datetime-local"]:focus {
+    border-color: #27ae60;
+    outline: none;
+}
+
+input[type="number"] {
+    padding: 10px 12px;
+    border: 1px solid #e3e3e3;
+    border-radius: 8px;
+    font-size: 1.07em;
+    background: #f5f6fa;
+    color: #1d2b20;
+    transition: border-color 0.2s;
+}
+
+input[type="number"]:focus {
+    border-color: #27ae60;
+    outline: none;
+}

@@ -1,6 +1,5 @@
 <?php
-require_once '../includes/admin_header.php';
-require_once '../includes/db_connect.php';
+require_once '../includes/autoload.php';
 session_start();
 
 // Only allow access if logged in and user is admin
@@ -9,51 +8,46 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     exit;
 }
 
+$userManager = new UserManager($pdo);
+
 //Pag may di gumana tanong nyo muna saken baka sa database field lang.
-// Stores error message
-$err_msg = "";
+$message = "";
+$messageType = "";
 
 // Delete function
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
-    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ? AND user_type = 'voter'");
-    if ($stmt->execute([$id])) {
-        $err_msg = "Voter deleted successfully.";
+    $result = $userManager->deleteUser($id, 'voter');
+    
+    if ($result === true) {
+        $message = "Voter deleted successfully.";
+        $messageType = "success";
     } else {
-        $err_msg = "Error deleting voter.";
+        $message = $result;
+        $messageType = "error";
     }
 }
 
-// Submit voter form handler
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = ucwords(trim($_POST['name'] ?? ''));
     $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    // Basic sanitization and validation
-    if (!preg_match('/^[a-zA-Z0-9_ ]+$/', $name)) {
-        $err_msg = "Name contains invalid characters.";
-    } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
-        $err_msg = "Username can only contain letters, numbers, and underscores.";
-    } elseif ($name === '' || $username === '' || $email === '' || $password === '') {
-        $err_msg = "All fields are required.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $err_msg = "Please enter a valid email address.";
-    } elseif (strlen($username) < 3) {
-        $err_msg = "Username must be at least 3 characters.";
-    } elseif (strlen($password) < 6) {
-        $err_msg = "Password must be at least 6 characters.";
+    // nilipat ko ung sanitization mo sa user_manager.php
+    // Use the addUser method to handle validation and insertion
+    $result = $userManager->addUser($username, $email, $password, $name, 'voter', true);
+    
+    if ($result === true) {
+        $message = "New voter added successfully.";
+        $messageType = "success";
     } else {
-        $password_hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO `users`(`username`, `email`, `pass_hash`, `full_name`, `user_type`, `is_active`) VALUES (?, ?, ?, ?, ?, ?)");
-        if ($stmt->execute([$username, $email, $password_hash, $name, 'voter', 1])) {
-            $err_msg = "New voter added successfully.";
-        } else {
-            $err_msg = "Error adding voter.";
-        }
+        $message = $result;
+        $messageType = "error";
     }
 }
+
+$voters = $userManager->getAllUsersByType('voter');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -66,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="../css/voter.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="../js/logout.js" defer></script>
 </head>
 
 <body>
@@ -103,42 +98,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div class="data-container">
         <h2>Registered Voters</h2>
-        <?php
-        // Fetch voters from the database
-        $stmt = $pdo->prepare("SELECT * FROM users");
-        $stmt->execute();
-        $voters = $stmt->fetchAll();
-
-        if ($voters) {
-            echo "<table>";
-            echo "<tr><th>Name</th><th>Username</th><th>Email</th><th>Action</th></tr>";
-            foreach ($voters as $voter) {
-                if ($voter['user_type'] !== 'voter') {
-                    continue; 
-                }
-                echo "<tr>";
-                echo "<td>" . $voter['full_name'] . "</td>";
-                echo "<td>" . $voter['username'] . "</td>";
-                echo "<td>" . $voter['email'] . "</td>";
-                echo "<td><a href='voters.php?delete=" . $voter['id'] . "' onclick=\"return confirm('Are you sure you want to voter " . $voter['full_name'] . "?');\">Delete</a></td>";
-                echo "</tr>";
-            }
-            echo "</table>";
-        }
-        ?>
+        <?php if (!empty($voters)): ?>
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Action</th>
+                </tr>
+                <?php foreach ($voters as $voter): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($voter['full_name']) ?></td>
+                        <td><?= htmlspecialchars($voter['username']) ?></td>
+                        <td><?= htmlspecialchars($voter['email']) ?></td>
+                        <td>
+                            <a href="voters.php?delete=<?= $voter['id'] ?>" 
+                               onclick="return confirm('Are you sure you want to delete voter <?= htmlspecialchars($voter['full_name']) ?>?');">Delete</a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+        <?php else: ?>
+            <p>No voters found.</p>
+        <?php endif; ?>
     </div>
-    <script>
-        document.getElementById('logoutNavBtn').onclick = function(e) {
-            e.preventDefault();
-            document.getElementById('logoutModal').classList.add('active');
-        };
-        document.getElementById('cancelLogoutBtn').onclick = function() {
-            document.getElementById('logoutModal').classList.remove('active');
-        };
-        document.getElementById('logoutModal').onclick = function(e) {
-            if (e.target === this) this.classList.remove('active');
-        };
-    </script>
 </body>
 
 </html>

@@ -1,8 +1,5 @@
 <?php
-require_once '../includes/admin_header.php';
-require_once '../includes/db_connect.php';
-// Need i-require ang functions.php for CRUD (Create, Read, Update, Delete) functions ng candidates
-require_once '../includes/functions.php'; // Include the functions file
+require_once '../includes/autoload.php';
 
 // Start the session para magamit ang session variables
 session_start();
@@ -13,6 +10,13 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     exit;
 }
 
+$securityManager = new SecurityManager($pdo);
+$candidateManager = new CandidateManager($pdo);
+$positionManager = new PositionManager($pdo);
+$partyManager = new PartyManager($pdo);
+$electionManager = new ElectionManager($pdo);
+
+
 // Para sa mga success or error messages pagkatapos ng isang action
 $message = '';
 $message_type = ''; // 'success' or 'error'
@@ -20,7 +24,6 @@ $message_type = ''; // 'success' or 'error'
 // Variables for the form (for both add and edit)
 $candidate_id = null;     // ID ng candidate, null if adding
 $name         = '';       // Name ng candidate
-$position     = '';       // Position na tinatakbuhan (unused when using ID)
 $position_id  = null;     // Position ID na tinatakbuhan
 $party_id     = null;     // Party ID kung meron
 $description  = '';       // Description or platform
@@ -30,13 +33,10 @@ $election_id  = null;     // Election ID that this candidate belongs to
 // Determine if we are adding or editing a candidate
 $is_editing = false; // Default is not editing (meaning, adding)
 
-// fetch list of pos. and parties for dropdowns
-$positionObj    = new Position($pdo);
-$position_list  = $positionObj->getAll();
-$partyObj       = new Party($pdo);
-$party_list     = $partyObj->getAll();
-$electionObj    = new Election($pdo);
-$election_list  = $electionObj->getAll();
+// fetch list of positions and parties for dropdowns
+$position_list = $positionManager->getAll();
+$party_list = $partyManager->getAll();
+$election_list = $electionManager->getAll();
 
 // If may 'action' na 'edit' and may 'id' sa URL (GET request)
 if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
@@ -45,7 +45,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
     // If valid ang ID
     if ($candidate_id) {
         // Get the data ng candidate using the ID
-        $candidate_to_edit = getCandidateById($candidate_id);
+        $candidate_to_edit = $candidateManager->getCandidateById($candidate_id);
 
         // Check if getCandidateById returned an error string
         if (is_string($candidate_to_edit)) {
@@ -62,9 +62,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
             $election_id  = $candidate_to_edit['election_id'];
             
             // Get positions specific to this election
-            $position_list = $positionObj->getAll($election_id);
+            $position_list = $positionManager->getAll($election_id);
             // Get parties specific to this election
-            $party_list = $partyObj->getAll($election_id);
+            $party_list = $partyManager->getAll($election_id);
         } else {
             // If hindi nahanap ang candidate
             $message      = 'Candidate not found.';
@@ -83,6 +83,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the action from the POST data
     $action = $_POST['action'] ?? '';
+    if ($action !== 'get_positions_by_election' && $action !== 'get_parties_by_election') {
+        // Validate CSRF token
+        if (!$securityManager->validateCSRFToken($_POST['csrf_token'] ?? '')) {
+            $message = 'Security validation failed. Please try again.';
+            $message_type = 'error';
+            // Stop processing the form
+            goto skip_form_processing;
+        }
+    }
 
     // Common form inputs
     $name        = trim($_POST['name'] ?? '');
@@ -105,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message_type = 'error';
             // If it's an update and fields are empty, re-populate the form with existing data
             if ($action === 'update' && $candidate_id) {
-                $candidate_to_edit = getCandidateById($candidate_id);
+                $candidate_to_edit = $candidateManager->getCandidateById($candidate_id);
                 // Check if getCandidateById returned an error string
                 if (is_string($candidate_to_edit)) {
                     $message      = $candidate_to_edit; // Display the specific error
@@ -123,9 +132,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Handle file upload
             // If may in-upload na photo at walang error sa pag-upload
             if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-                // Use helper from functions.php
+                // Use FileHandler class
                 $upload_error = '';
-                $new_path = handleFileUpload($_FILES['photo'], 'uploads/candidates/', $upload_error);
+                $new_path = FileHandler::uploadFile($_FILES['photo'], 'uploads/candidates/', $upload_error);
                 if ($new_path === null) {
                     // If may error sa pag-upload
                     $message      = $upload_error;
@@ -133,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     // If updating and there's an old photo, delete it
                     if ($action === 'update' && $current_photo_path) {
-                        deleteFile($current_photo_path);
+                        FileHandler::deleteFile($current_photo_path);
                     }
                     $uploaded_photo_path = $new_path;
                 }
@@ -143,8 +152,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($message_type)) {
                 // If the action is 'add'
                 if ($action === 'add') {
-                    // Call the addCandidate function with election_id, position_id, party_id
-                    $result = addCandidate(
+                    // Call the addCandidate method with election_id, position_id, party_id
+                    $result = $candidateManager->addCandidate(
                         $election_id,
                         $name,
                         $position_id,
@@ -168,8 +177,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $message_type = 'error';
                     }
                 } elseif ($action === 'update') { // If the action is 'update'
-                    // Call the updateCandidate function
-                    $result = updateCandidate(
+                    // Call the updateCandidate method
+                    $result = $candidateManager->updateCandidate(
                         $candidate_id,
                         $name,
                         $position_id,
@@ -195,8 +204,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $candidate_id_to_delete = filter_var($_POST['id'], FILTER_VALIDATE_INT);
         // If valid ang ID
         if ($candidate_id_to_delete) {
-            // Call the deleteCandidate function
-            $result = deleteCandidate($candidate_id_to_delete);
+            // Call the deleteCandidate method
+            $result = $candidateManager->deleteCandidate($candidate_id_to_delete);
             if ($result === true) {
                 $message      = 'Candidate deleted successfully!';
                 $message_type = 'success';
@@ -216,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Content-Type: application/json');
         $election_id = filter_input(INPUT_POST, 'election_id', FILTER_VALIDATE_INT);
         if ($election_id) {
-            $positions = $positionObj->getAll($election_id);
+            $positions = $positionManager->getAll($election_id);
             echo json_encode($positions);
             exit;
         }
@@ -228,20 +237,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Content-Type: application/json');
         $election_id = filter_input(INPUT_POST, 'election_id', FILTER_VALIDATE_INT);
         if ($election_id) {
-            $parties = $partyObj->getAll($election_id);
+            $parties = $partyManager->getAll($election_id);
             echo json_encode($parties);
             exit;
         }
         echo json_encode([]);
         exit;
     }
+
+    skip_form_processing:
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'get_positions_by_election') {
     header('Content-Type: application/json');
     $election_id = filter_input(INPUT_GET, 'election_id', FILTER_VALIDATE_INT);
     if ($election_id) {
-        $positions = $positionObj->getAll($election_id);
+        $positions = $positionManager->getAll($election_id);
         echo json_encode($positions);
         exit;
     }
@@ -253,7 +264,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_parties_by_election') {
     header('Content-Type: application/json');
     $election_id = filter_input(INPUT_GET, 'election_id', FILTER_VALIDATE_INT);
     if ($election_id) {
-        $parties = $partyObj->getAll($election_id);
+        $parties = $partyManager->getAll($election_id);
         echo json_encode($parties);
         exit;
     }
@@ -262,13 +273,25 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_parties_by_election') {
 }
 
 // Get all candidates (after any modifications)
-$candidates = getCandidates(); 
+$candidates = $candidateManager->getCandidates();
 // Check if getCandidates returned an error string
 if (is_string($candidates)) {
     $message      = $candidates; // Display the specific error
     $message_type = 'error';
     $candidates   = []; // Ensure $candidates is an empty array to prevent issues in the loop
 }
+
+// SEKYU CIBERSEKURITY
+$securityManager->checkSessionTimeout();
+$securityManager->secureSession();
+
+$csrf_token = $securityManager->generateCSRFToken();
+?>
+
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -288,6 +311,7 @@ if (is_string($candidates)) {
         <div id="logoutModalContent">
             <h3>Are you sure you want to log out?</h3>
             <form action="../logout.php" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <button type="submit" class="modal-btn confirm">Continue</button>
             </form>
             <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
@@ -309,6 +333,7 @@ if (is_string($candidates)) {
                     <input type="hidden" name="action" value="update">
                     <input type="hidden" name="id" value="<?php echo htmlspecialchars($candidate_id); ?>">
                     <input type="hidden" name="current_photo_path" value="<?php echo htmlspecialchars($photo_path ?? ''); ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
 
                     <div class="form-group">
                         <label for="name">Candidate Name:</label>
@@ -425,6 +450,8 @@ if (is_string($candidates)) {
                         <label for="photo">Candidate Photo (optional):</label>
                         <input type="file" id="photo" name="photo" accept="image/*">
                     </div>
+                    
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
 
                     <div class="form-actions">
                         <button type="submit">Add Candidate</button>
@@ -488,6 +515,7 @@ if (is_string($candidates)) {
                                 <form action="candidates.php" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this candidate?');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo htmlspecialchars($candidate_row['id']); ?>">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token);?>">
                                     <button type="submit" class="delete-btn">Delete</button>
                                 </form>
                             </td>

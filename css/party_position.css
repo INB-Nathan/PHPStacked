@@ -1,0 +1,30 @@
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-weight: bold;
+    text-align: center;
+    width: 90%;
+    margin: 0 auto;
+}
+
+.status-upcoming {
+    background-color: #f39c12;
+    color: #fff;
+}
+
+.status-active {
+    background-color: #27ae60;
+    color: #fff;
+}
+
+.status-completed {
+    background-color: #3498db;
+    color: #fff;
+}
+
+.status-cancelled {
+    background-color: #e74c3c;
+    color: #fff;
+}

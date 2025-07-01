@@ -1,20 +1,25 @@
 <?php
-require_once '../includes/admin_header.php';
-require_once '../includes/db_connect.php';
-require_once '../includes/functions.php';
+require_once '../includes/autoload.php';
 session_start();
+
+$securityManager = new SecurityManager($pdo);
+$securityManager->secureSession();
+$securityManager->checkSessionTimeout();
+$csrf_token = $securityManager->generateCSRFToken();
 
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') {
     header('Location: ../login.php');
     exit;
 }
 
-$partyObj = new Party($pdo);
-$positionObj = new Position($pdo);
-$electionObj = new Election($pdo);
+// Initialize managers
+$partyManager = new PartyManager($pdo);
+$positionManager = new PositionManager($pdo);
+$electionManager = new ElectionManager($pdo);
+$candidateManager = new CandidateManager($pdo);
 
 // Get all elections for dropdown
-$elections = $electionObj->getAll();
+$elections = $electionManager->getAll();
 
 // Party messages & state
 $addError = $partyAddSuccess = $partyEditError = $partyEditSuccess = '';
@@ -29,6 +34,15 @@ $pos_editing_id = isset($_GET['edit_position']) ? (int)$_GET['edit_position'] : 
 // Selected election filter
 $selected_election_id = isset($_GET['election_id']) ? (int)$_GET['election_id'] : (isset($_POST['election_id']) ? (int)$_POST['election_id'] : null);
 
+// --- Check for CSRF token on all POST requests ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !$securityManager->validateCSRFToken($_POST['csrf_token'])) {
+        $csrf_error = 'Security validation failed. Please try again.';
+        // Skip all POST processing if CSRF validation fails
+        goto render_page;
+    }
+}
+
 // --- ADD PARTY ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_party'])) {
     $party_name = trim($_POST['party_name'] ?? '');
@@ -39,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_party'])) {
         $addError = 'Party name and election selection are required.';
     } else {
         try {
-            $partyObj->add($party_name, $party_desc, $election_id);
+            $partyManager->add($party_name, $party_desc, $election_id);
             $partyAddSuccess = 'Party added!';
         } catch (PDOException $e) {
             $addError = $e->getCode() == 23000
@@ -61,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_party'])) {
         $editing_id = $party_id;
     } else {
         try {
-            $partyObj->update($party_id, $party_name, $party_desc, $election_id);
+            $partyManager->update($party_id, $party_name, $party_desc, $election_id);
             $partyEditSuccess = 'Party updated!';
             $editing_id = 0;
         } catch (PDOException $e) {
@@ -77,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_party'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_party'])) {
     $party_id = (int)($_POST['party_id'] ?? 0);
     try {
-        $partyObj->delete($party_id);
+        $partyManager->delete($party_id);
         $partyDeleteSuccess = 'Party deleted.';
         if ($editing_id === $party_id) {
             $editing_id = 0;
@@ -89,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_party'])) {
 
 // --- FETCH PARTIES ---
 try {
-    $parties = $partyObj->getAll($selected_election_id);
+    $parties = $partyManager->getAll($selected_election_id);
 } catch (PDOException $e) {
     $parties = [];
     $fetchError = "Could not fetch parties: " . htmlspecialchars($e->getMessage());
@@ -104,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_position'])) {
         $posAddError = 'Position name and election selection are required.';
     } else {
         try {
-            $positionObj->add($position_name, $election_id);
+            $positionManager->add($position_name, $election_id);
             $posAddSuccess = 'Position added!';
         } catch (PDOException $e) {
             $posAddError = $e->getCode() == 23000
@@ -125,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_position'])) {
         $pos_editing_id = $position_id;
     } else {
         try {
-            $positionObj->update($position_id, $position_name, $election_id);
+            $positionManager->update($position_id, $position_name, $election_id);
             $posEditSuccess = 'Position updated!';
             $pos_editing_id = 0;
         } catch (PDOException $e) {
@@ -141,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_position'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_position'])) {
     $position_id = (int)($_POST['position_id'] ?? 0);
     try {
-        $positionObj->delete($position_id);
+        $positionManager->delete($position_id);
         $posDeleteSuccess = 'Position deleted.';
         if ($pos_editing_id === $position_id) {
             $pos_editing_id = 0;
@@ -153,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_position'])) {
 
 // --- FETCH POSITIONS ---
 try {
-    $positions = $positionObj->getAll($selected_election_id);
+    $positions = $positionManager->getAll($selected_election_id);
 } catch (PDOException $e) {
     $positions = [];
     $posFetchError = "Could not fetch positions: " . htmlspecialchars($e->getMessage());
@@ -161,46 +175,22 @@ try {
 
 // --- FETCH INDEPENDENT CANDIDATES ---
 try {
-    // Query for candidates with null party_id or party_id of the Independent party
-    $independentCandidates = [];
-    $sql = "
-        SELECT 
-            c.id, 
-            c.name, 
-            c.bio, 
-            c.photo,
-            p.position_name, 
-            e.title as election_title,
-            e.status as election_status
-        FROM 
-            candidates c
-        JOIN 
-            positions p ON c.position_id = p.id
-        JOIN 
-            elections e ON c.election_id = e.id
-        WHERE 
-            c.party_id IS NULL OR c.party_id = (SELECT id FROM parties WHERE name = 'Independent' LIMIT 1)
-    ";
-    
-    if ($selected_election_id) {
-        $sql .= " AND c.election_id = :election_id";
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindParam(':election_id', $selected_election_id, PDO::PARAM_INT);
-    } else {
-        $stmt = $pdo->prepare($sql);
-    }
-    
-    $stmt->execute();
-    $independentCandidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $independentCandidates = $candidateManager->getIndependentCandidates($selected_election_id);
 } catch (PDOException $e) {
     $independentFetchError = "Could not fetch independent candidates: " . htmlspecialchars($e->getMessage());
+    $independentCandidates = [];
 }
+
+// Label for goto statement when CSRF validation fails
+render_page:
 ?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token); ?>">
     <title>Party & Position Management</title>
     <link rel="stylesheet" href="../css/admin_header.css?v=1.1">
     <link rel="stylesheet" href="../css/admin_index.css">
@@ -208,21 +198,30 @@ try {
     <link rel="stylesheet" href="../css/container.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="../css/party_popup.css">
+    <link rel="stylesheet" href="../css/party_table.css">
+    <link rel="stylesheet" href="../css/party_position.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="../js/logout.js" defer></script>
 </head>
 
 <body>
     <?php adminHeader('party'); ?>
-
     <div id="logoutModal">
         <div id="logoutModalContent">
             <h3>Are you sure you want to log out?</h3>
             <form action="../logout.php" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <button type="submit" class="modal-btn confirm">Continue</button>
             </form>
             <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
         </div>
     </div>
+
+    <?php if (isset($csrf_error)): ?>
+    <div class="alert alert-danger" style="background-color: #f8d7da; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 5px;">
+        <?php echo htmlspecialchars($csrf_error); ?>
+    </div>
+    <?php endif; ?>
 
     <!-- Election Filter -->
     <div class="election-filter-container">
@@ -245,6 +244,7 @@ try {
             <h1>Party Management</h1>
             <div class="add-party-form" style="max-width:400px;">
                 <form method="post" autocomplete="off">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <div class="form_row"><strong><?= $editing_id ? 'Edit Party' : 'Add New Party' ?></strong></div>
                     <?php if (!empty($addError)): ?>
                         <div class="msg-error"><?= htmlspecialchars($addError) ?></div>
@@ -335,7 +335,7 @@ try {
                             <tr>
                                 <td>
                                     <span class="party-name-link"
-                                        data-partyid="<?= $party['id'] ?>"
+                                        data-partyid="<?= htmlspecialchars($party['id']) ?>"
                                         data-partyname="<?= htmlspecialchars($party['name']) ?>">
                                         <?= htmlspecialchars($party['name']) ?>
                                     </span>
@@ -357,6 +357,7 @@ try {
                                     <a href="party_position.php?edit=<?= $party['id'] ?><?= $selected_election_id ? '&election_id=' . $selected_election_id : '' ?>" class="btn-edit">Edit</a>
                                     <form method="post" style="display:inline;"
                                         onsubmit="return confirm('Delete this party?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                         <input type="hidden" name="party_id" value="<?= $party['id'] ?>">
                                         <button type="submit" name="delete_party" class="btn-delete">Delete</button>
                                     </form>
@@ -377,6 +378,7 @@ try {
             <h1>Position Management</h1>
             <div class="add-party-form" style="max-width:400px;">
                 <form method="post" autocomplete="off">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <div class="form_row"><strong><?= $pos_editing_id ? 'Edit Position' : 'Add New Position' ?></strong></div>
                     <?php if (!empty($posAddError)): ?>
                         <div class="msg-error"><?= htmlspecialchars($posAddError) ?></div>
@@ -472,6 +474,7 @@ try {
                                     <a href="party_position.php?edit_position=<?= $position['id'] ?><?= $selected_election_id ? '&election_id=' . $selected_election_id : '' ?>" class="btn-edit">Edit</a>
                                     <form method="post" style="display:inline;"
                                         onsubmit="return confirm('Delete this position?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                         <input type="hidden" name="position_id" value="<?= $position['id'] ?>">
                                         <button type="submit" name="delete_position" class="btn-delete">Delete</button>
                                     </form>
@@ -529,7 +532,13 @@ try {
                                 <td><?= nl2br(htmlspecialchars(substr($candidate['bio'], 0, 100) . (strlen($candidate['bio']) > 100 ? '...' : ''))) ?></td>
                                 <td>
                                     <a href="candidates.php?action=edit&id=<?= $candidate['id'] ?>" class="btn-edit">Edit</a>
-                                    <a href="candidates.php?action=edit&id=<?= $candidate['id'] ?>" class="btn-delete">Delete</a>
+                                    <form action="candidates.php" method="post" style="display:inline;" 
+                                        onsubmit="return confirm('Are you sure you want to delete this candidate?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="<?= $candidate['id'] ?>">
+                                        <button type="submit" class="btn-delete">Delete</button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -553,23 +562,54 @@ try {
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Get CSRF token from meta tag
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
             document.querySelectorAll('.party-name-link').forEach(link => {
                 link.addEventListener('click', function() {
                     const partyId = this.dataset.partyid;
                     const partyName = this.dataset.partyname;
+                    
+                    // Validate input
+                    if (!partyId || isNaN(parseInt(partyId))) {
+                        console.error('Invalid party ID');
+                        return;
+                    }
+                    
                     const modal = document.getElementById('partyMembersModal');
                     const inner = document.getElementById('partyMembersInner');
                     inner.innerHTML = '<div style="text-align:center;padding:30px;">Loading...</div>';
                     modal.classList.add('active');
 
-                    fetch('party_members.php?id=' + encodeURIComponent(partyId))
-                        .then(resp => resp.text())
-                        .then(html => {
-                            inner.innerHTML = `<h2 style="margin-top:0;">${partyName} Members</h2>${html}`;
-                        })
-                        .catch(() => {
-                            inner.innerHTML = '<div style="color:red;text-align:center;">Failed to load members.</div>';
-                        });
+                    fetch('party_members.php?id=' + encodeURIComponent(partyId), {
+                        headers: {
+                            'X-CSRF-Token': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(resp => {
+                        if (!resp.ok) {
+                            throw new Error('HTTP error ' + resp.status);
+                        }
+                        return resp.text();
+                    })
+                    .then(html => {
+                        // Create elements safely
+                        inner.innerHTML = '';
+                        
+                        const heading = document.createElement('h2');
+                        heading.style.marginTop = '0';
+                        heading.textContent = partyName + ' Members';
+                        inner.appendChild(heading);
+                        
+                        const contentDiv = document.createElement('div');
+                        contentDiv.innerHTML = html;
+                        inner.appendChild(contentDiv);
+                    })
+                    .catch((error) => {
+                        console.error('Failed to load party members:', error);
+                        inner.innerHTML = '<div style="color:red;text-align:center;">Failed to load members. Please try again.</div>';
+                    });
                 });
             });
 
@@ -578,19 +618,6 @@ try {
             };
             document.getElementById('modalBlurBG').onclick = () => {
                 document.getElementById('partyMembersModal').classList.remove('active');
-            };
-
-            document.getElementById('logoutNavBtn').onclick = e => {
-                e.preventDefault();
-                document.getElementById('logoutModal').classList.add('active');
-            };
-            document.getElementById('cancelLogoutBtn').onclick = () => {
-                document.getElementById('logoutModal').classList.remove('active');
-            };
-            document.getElementById('logoutModal').onclick = e => {
-                if (e.target === e.currentTarget) {
-                    document.getElementById('logoutModal').classList.remove('active');
-                }
             };
         });
     </script>

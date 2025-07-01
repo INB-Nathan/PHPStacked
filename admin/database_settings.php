@@ -1,7 +1,5 @@
 <?php
-require_once '../includes/admin_header.php';
-require_once '../includes/db_connect.php';
-require_once '../includes/functions.php';
+require_once '../includes/autoload.php'; // This loads all our classes and db_connect.php
 session_start();
 
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') {
@@ -9,108 +7,68 @@ if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') 
     exit;
 }
 
+$dbManager = new DatabaseManager($pdo);
+
 $message = '';
 $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['admin_password'])) {
-        try {
-            $stmt = $pdo->prepare("SELECT pass_hash FROM users WHERE username = 'admin' AND user_type = 'admin' LIMIT 1");
-            $stmt->execute();
-            $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($admin && password_verify($_POST['admin_password'], $admin['pass_hash'])) {
-                $action = $_POST['action'] ?? '';
-                $pdo->beginTransaction();
-
-                try {
-                    switch ($action) {
-                        case 'clear_users':
-                            $stmt = $pdo->prepare("DELETE FROM users WHERE user_type != 'admin'");
-                            $stmt->execute();
-                            $message = "Voter accounts have been cleared. " . $stmt->rowCount() . " records deleted.";
-                            $message_type = 'success';
-                            break;
-
-                        case 'clear_elections':
-                            $stmt = $pdo->prepare("DELETE FROM elections");
-                            $stmt->execute();
-                            $message = "Elections and related data have been cleared. " . $stmt->rowCount() . " elections deleted.";
-                            $message_type = 'success';
-                            break;
-
-                        case 'clear_positions':
-                            $stmt = $pdo->prepare("DELETE FROM positions");
-                            $stmt->execute();
-                            $message = "Positions have been cleared. " . $stmt->rowCount() . " positions deleted.";
-                            $message_type = 'success';
-                            break;
-
-                        case 'clear_parties':
-                            $stmt = $pdo->prepare("DELETE FROM parties WHERE name != 'Independent'");
-                            $stmt->execute();
-                            $message = "Parties have been cleared. " . $stmt->rowCount() . " parties deleted.";
-                            $message_type = 'success';
-                            break;
-
-                        case 'clear_votes':
-                            $stmt = $pdo->prepare("DELETE FROM votes");
-                            $stmt->execute();
-                            $message = "Votes have been cleared. " . $stmt->rowCount() . " votes deleted.";
-                            $message_type = 'success';
-                            break;
-
-                        case 'reset_database':
-                            $pdo->exec("DELETE FROM votes");
-                            $pdo->exec("DELETE FROM candidates");
-                            $pdo->exec("DELETE FROM positions");
-                            $pdo->exec("DELETE FROM parties WHERE name != 'Independent'");
-                            
-                            $pdo->exec("DELETE FROM elections");
-                            
-                            $pdo->exec("DELETE FROM users WHERE user_type != 'admin'");
-                            
-                            $message = "Database has been reset to initial state.";
-                            $message_type = 'success';
-                            break;
-
-                        default:
-                            throw new Exception("Invalid action requested.");
-                    }
-                    $pdo->commit();
-                } catch (Exception $e) {
-                    $pdo->rollBack();
-                    $message = "Error: " . $e->getMessage();
+        if ($dbManager->verifyAdminPassword($_POST['admin_password'])) {
+            $action = $_POST['action'] ?? '';
+            
+            try {
+                $result = null;
+                
+                switch ($action) {
+                    case 'clear_users':
+                        $result = $dbManager->clearUsers();
+                        break;
+                        
+                    case 'clear_elections':
+                        $result = $dbManager->clearElections();
+                        break;
+                        
+                    case 'clear_positions':
+                        $result = $dbManager->clearPositions();
+                        break;
+                        
+                    case 'clear_parties':
+                        $result = $dbManager->clearParties();
+                        break;
+                        
+                    case 'clear_votes':
+                        $result = $dbManager->clearVotes();
+                        break;
+                        
+                    case 'reset_database':
+                        $result = $dbManager->resetDatabase();
+                        break;
+                        
+                    default:
+                        throw new Exception("Invalid action requested.");
+                }
+                
+                if ($result && $result['success']) {
+                    $message = $result['message'];
+                    $message_type = 'success';
+                } else {
+                    $message = $result['message'] ?? "Unknown error occurred";
                     $message_type = 'error';
                 }
-            } else {
-                $message = "Invalid administrator password. Action aborted.";
+            } catch (Exception $e) {
+                $message = "Error: " . $e->getMessage();
                 $message_type = 'error';
             }
-        } catch (PDOException $e) {
-            $message = "Database error: " . $e->getMessage();
+        } else {
+            $message = "Invalid administrator password. Action aborted.";
             $message_type = 'error';
         }
     }
 }
 
-try {
-    $counts = [
-        'users' => $pdo->query("SELECT COUNT(*) FROM users WHERE user_type != 'admin'")->fetchColumn(),
-        'elections' => $pdo->query("SELECT COUNT(*) FROM elections")->fetchColumn(),
-        'positions' => $pdo->query("SELECT COUNT(*) FROM positions")->fetchColumn(),
-        'parties' => $pdo->query("SELECT COUNT(*) FROM parties WHERE name != 'Independent'")->fetchColumn(),
-        'votes' => $pdo->query("SELECT COUNT(*) FROM votes")->fetchColumn(),
-    ];
-} catch (PDOException $e) {
-    $counts = [
-        'users' => 'Error',
-        'elections' => 'Error',
-        'positions' => 'Error',
-        'parties' => 'Error',
-        'votes' => 'Error',
-    ];
-}
+// Get record counts
+$counts = $dbManager->getRecordCounts();
 ?>
 
 <!DOCTYPE html>

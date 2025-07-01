@@ -1,6 +1,5 @@
 <?php
-    require_once '../includes/db_connect.php';
-    require_once '../includes/admin_header.php';
+    require_once '../includes/autoload.php';
     session_start();
 
     function requireLogin() {
@@ -26,6 +25,7 @@
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="../js/voter.js" defer></script>
 </head>
 <body>
     <?php adminHeader('dashboard'); ?>
@@ -71,17 +71,5 @@
             </li>
         </ul>
     </div>
-    <script>
-        document.getElementById('logoutNavBtn').onclick = function(e) {
-            e.preventDefault();
-            document.getElementById('logoutModal').classList.add('active');
-        };
-        document.getElementById('cancelLogoutBtn').onclick = function() {
-            document.getElementById('logoutModal').classList.remove('active');
-        };
-        document.getElementById('logoutModal').onclick = function(e) {
-            if (e.target === this) this.classList.remove('active');
-        };
-    </script>
 </body>
 </html>

@@ -1,44 +1,60 @@
 <?php
 session_start();
-require_once 'includes/db_connect.php';
-require_once 'includes/session_manager.php';
+require_once "includes/autoload.php"; // Make sure the path to autoload is correct
+
+// Initialize SecurityManager
+$securityManager = new SecurityManager($pdo);
+$securityManager->secureSession();
+
+// Generate CSRF token for the form
+$csrf_token = $securityManager->generateCSRFToken();
 
 $error = "";
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = trim($_POST['username']);
-    $password = $_POST['password'] ?? '';
+if (isset($_GET['msg']) && $_GET['msg'] === 'timeout') {
+    $error = "Your session has expired due to inactivity. Please log in again.";
+}
 
-   
-    if ($username && $password){
-        try{
-            $stmt = $pdo -> prepare("SELECT id, username, pass_hash, user_type, is_active FROM users WHERE username = :username LIMIT 1");
-            $stmt->execute(['username' => $username]);
-            $user = $stmt->fetch();
-            if ($user && $user['is_active']){
-                if (password_verify($password, $user['pass_hash'])) {
-                    session_regenerate_id(true);
-                    $_SESSION['loggedin'] = true;
-                    $_SESSION['username'] = $user['username'];
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['user_type'] = $user['user_type'];
-                    if ($user['user_type'] == 'admin') {
-                        header("Location: admin/");
-                        exit;
-                    } else {
-                        header("Location: voter/");
-                        exit;
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if (!$securityManager->validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = "Security validation failed. Please try again.";
+    } else {
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+        
+        if ($username && $password) {
+            try {
+                $stmt = $pdo->prepare("SELECT id, username, pass_hash, user_type, is_active FROM users WHERE username = :username LIMIT 1");
+                $stmt->execute(['username' => $username]);
+                $user = $stmt->fetch();
+                
+                if ($user && $user['is_active']) {
+                    if (password_verify($password, $user['pass_hash'])) {
+                        $securityManager->regenerateSession();
+                        
+                        $_SESSION['loggedin'] = true;
+                        $_SESSION['username'] = $user['username'];
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['user_type'] = $user['user_type'];
+                        $_SESSION['last_activity'] = time();
+                        
+                        if ($user['user_type'] == 'admin') {
+                            header("Location: admin/");
+                            exit;
+                        } else {
+                            header("Location: voter/");
+                            exit;
+                        }
                     }
                 }
-            }
                 $error = "Invalid username or password.";
-        } catch (PDOException $e) {
-            $error = "Database error.";
+            } catch (PDOException $e) {
+                $error = "Database error: " . $e->getMessage();
+            }
+        } else {
+            $error = "Please enter both username and password.";
         }
-    } else {
-        $error = "Please enter both username and password.";
     }
-
 }
 ?>
 
@@ -64,10 +80,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <br>
                 <input type="password" id="password" name="password" placeholder="Password" required>
                 <br>
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <button type="submit" name="submit">Login</button>
             </form>
             <div class="error-message">
-                <p><?php echo $error; ?></p>
+                <p><?php echo htmlspecialchars($error); ?></p>
             </div>
         </div>
     </div>

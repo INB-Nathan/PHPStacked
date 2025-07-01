@@ -1,7 +1,5 @@
 <?php
-require_once '../includes/admin_header.php';
-require_once '../includes/db_connect.php';
-require_once '../includes/functions.php';
+require_once '../includes/autoload.php';
 session_start();
 
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') {
@@ -9,7 +7,7 @@ if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') 
     exit;
 }
 
-$electionObj = new Election($pdo);
+$electionManager = new ElectionManager($pdo);
 
 $addError = $addSuccess = $editError = $editSuccess = $deleteError = $deleteSuccess = '';
 $editing_id = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
@@ -28,8 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_election'])) {
     } else {
         $data = compact('title', 'description', 'start_date', 'end_date', 'status', 'max_votes');
         $data['max_votes_per_user'] = $max_votes;
-        $r = $electionObj->addElection($data);
-        $addSuccess = $r === true ? 'Election created!' : $r;
+        $result = $electionManager->addElection($data);
+        $addSuccess = $result === true ? 'Election created!' : $result;
     }
 }
 
@@ -49,12 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_election'])) {
     } else {
         $data = compact('title', 'description', 'start_date', 'end_date', 'status', 'max_votes');
         $data['max_votes_per_user'] = $max_votes;
-        $r = $electionObj->updateElection($id, $data);
-        if ($r === true) {
+        $result = $electionManager->updateElection($id, $data);
+        if ($result === true) {
             $editSuccess = 'Election updated!';
             $editing_id = 0;
         } else {
-            $editError = $r;
+            $editError = $result;
             $editing_id = $id;
         }
     }
@@ -63,18 +61,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_election'])) {
 // --- DELETE ELECTION ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_election'])) {
     $id = (int)$_POST['election_id'];
-    $r = $electionObj->deleteElection($id);
-    if ($r === true) {
+    $result = $electionManager->deleteElection($id);
+    if ($result === true) {
         $deleteSuccess = 'Election deleted.';
         if ($editing_id === $id) $editing_id = 0;
     } else {
-        $deleteError = $r;
+        $deleteError = $result;
     }
 }
 
 // --- FETCH ELECTIONS ---
 try {
-    $elections = $electionObj->getAll();
+    $elections = $electionManager->getAll();
 } catch (PDOException $e) {
     $elections = [];
     $fetchError = "Could not fetch elections: " . htmlspecialchars($e->getMessage());
@@ -83,7 +81,7 @@ try {
 // --- Fetch single for edit if needed
 $editing_election = null;
 if ($editing_id) {
-    $row = $electionObj->getById($editing_id);
+    $row = $electionManager->getById($editing_id);
     if (is_array($row)) $editing_election = $row;
 }
 ?>
@@ -98,6 +96,7 @@ if ($editing_id) {
     <link rel="stylesheet" href="../css/container.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="../css/party_popup.css">
+    <link rel="stylesheet" href="../css/admin_election.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
 </head>
 <body>
@@ -225,63 +224,6 @@ if ($editing_id) {
             </table>
         </div>
     </div>
-
-    <style>
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            font-weight: bold;
-            text-align: center;
-            width: 90%;
-            margin: 0 auto;
-        }
-        .status-upcoming {
-            background-color: #f39c12;
-            color: #fff;
-        }
-        .status-active {
-            background-color: #27ae60;
-            color: #fff;
-        }
-        .status-completed {
-            background-color: #3498db;
-            color: #fff;
-        }
-        .status-cancelled {
-            background-color: #e74c3c;
-            color: #fff;
-        }
-        
-        /* Override for datetime inputs to match other inputs */
-        input[type="datetime-local"] {
-            padding: 10px 12px;
-            border: 1px solid #e3e3e3;
-            border-radius: 8px;
-            font-size: 1.07em;
-            background: #f5f6fa;
-            color: #1d2b20;
-            transition: border-color 0.2s;
-        }
-        input[type="datetime-local"]:focus {
-            border-color: #27ae60;
-            outline: none;
-        }
-        input[type="number"] {
-            padding: 10px 12px;
-            border: 1px solid #e3e3e3;
-            border-radius: 8px;
-            font-size: 1.07em;
-            background: #f5f6fa;
-            color: #1d2b20;
-            transition: border-color 0.2s;
-        }
-        input[type="number"]:focus {
-            border-color: #27ae60;
-            outline: none;
-        }
-    </style>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
