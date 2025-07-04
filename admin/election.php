@@ -2,6 +2,11 @@
 require_once '../includes/autoload.php';
 session_start();
 
+$securityManager = new SecurityManager($pdo);
+$securityManager->secureSession();
+$securityManager->checkSessionTimeout();
+$csrf_token = $securityManager->generateCSRFToken();
+
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') {
     header('Location: ../login.php');
     exit;
@@ -11,6 +16,14 @@ $electionManager = new ElectionManager($pdo);
 
 $addError = $addSuccess = $editError = $editSuccess = $deleteError = $deleteSuccess = '';
 $editing_id = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
+
+// --- Validate CSRF token for all POST requests ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !$securityManager->validateCSRFToken($_POST['csrf_token'])) {
+        $csrf_error = 'Security validation failed. Please try again.';
+        goto render_page;
+    }
+}
 
 // --- ADD ELECTION ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_election'])) {
@@ -84,11 +97,15 @@ if ($editing_id) {
     $row = $electionManager->getById($editing_id);
     if (is_array($row)) $editing_election = $row;
 }
+
+render_page:
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token); ?>">
     <title>Election Management</title>
     <link rel="stylesheet" href="../css/admin_header.css?v=1.1">
     <link rel="stylesheet" href="../css/admin_index.css">
@@ -98,6 +115,7 @@ if ($editing_id) {
     <link rel="stylesheet" href="../css/party_popup.css">
     <link rel="stylesheet" href="../css/admin_election.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <script src="../js/logout.js" defer></script>
 </head>
 <body>
     <?php adminHeader('elections'); ?>
@@ -106,17 +124,25 @@ if ($editing_id) {
         <div id="logoutModalContent">
             <h3>Are you sure you want to log out?</h3>
             <form action="../logout.php" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <button type="submit" class="modal-btn confirm">Continue</button>
             </form>
             <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
         </div>
     </div>
 
+    <?php if (isset($csrf_error)): ?>
+    <div class="alert alert-danger" style="background-color: #f8d7da; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 5px; text-align: center; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <?php echo htmlspecialchars($csrf_error); ?>
+    </div>
+    <?php endif; ?>
+
     <div class="container-flex">
         <div class="management-box">
             <h1>Election Management</h1>
             <div class="add-party-form">
                 <form method="post" autocomplete="off">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <div class="form_row"><strong><?= $editing_election ? 'Edit Election' : 'Add New Election' ?></strong></div>
                     <?php if ($addError): ?><div class="msg-error"><?= htmlspecialchars($addError) ?></div><?php endif; ?>
                     <?php if ($addSuccess): ?><div class="msg-success"><?= htmlspecialchars($addSuccess) ?></div><?php endif; ?>
@@ -164,7 +190,7 @@ if ($editing_id) {
                         <?php if ($editing_election): ?>
                             <input type="hidden" name="election_id" value="<?= $editing_election['id'] ?>">
                             <button type="submit" name="update_election" class="btn-save">Update Election</button>
-                            <a href="election.php" class="btn-cancel">Cancel</a>
+                            <a href="admin_election.php" class="btn-cancel">Cancel</a>
                         <?php else: ?>
                             <button type="submit" name="add_election" class="btn-save">Add Election</button>
                         <?php endif; ?>
@@ -207,8 +233,9 @@ if ($editing_id) {
                                 </td>
                                 <td style="text-align:center;"><?= htmlspecialchars($election['max_votes_per_user']) ?></td>
                                 <td>
-                                    <a href="election.php?edit=<?= $election['id'] ?>" class="btn-edit">Edit</a>
+                                    <a href="admin_election.php?edit=<?= $election['id'] ?>" class="btn-edit">Edit</a>
                                     <form method="post" style="display:inline;" onsubmit="return confirm('Delete this election?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                         <input type="hidden" name="election_id" value="<?= $election['id'] ?>">
                                         <button type="submit" name="delete_election" class="btn-delete">Delete</button>
                                     </form>
@@ -227,18 +254,22 @@ if ($editing_id) {
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('logoutNavBtn').onclick = e => {
-                e.preventDefault();
-                document.getElementById('logoutModal').classList.add('active');
-            };
-            document.getElementById('cancelLogoutBtn').onclick = () => {
-                document.getElementById('logoutModal').classList.remove('active');
-            };
-            document.getElementById('logoutModal').onclick = e => {
-                if (e.target === e.currentTarget) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
+            if (typeof logoutNavBtnClickHandler === 'undefined') {
+                document.getElementById('logoutNavBtn').onclick = e => {
+                    e.preventDefault();
+                    document.getElementById('logoutModal').classList.add('active');
+                };
+                document.getElementById('cancelLogoutBtn').onclick = () => {
                     document.getElementById('logoutModal').classList.remove('active');
-                }
-            };
+                };
+                document.getElementById('logoutModal').onclick = e => {
+                    if (e.target === e.currentTarget) {
+                        document.getElementById('logoutModal').classList.remove('active');
+                    }
+                };
+            }
         });
     </script>
 </body>

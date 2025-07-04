@@ -1,18 +1,16 @@
 <?php
-    require_once '../includes/autoload.php';
-    session_start();
+require_once '../includes/autoload.php';
+session_start();
 
-    function requireLogin() {
-        if (empty($_SESSION['loggedin']) || !isset($_SESSION['user_type'])) {
-            header("Location: ../login.php");
-            exit;
-        }
-        if ($_SESSION['user_type'] !== 'admin') {
-            header("Location: ../login.php");
-            exit;
-        }
-    }
-    requireLogin();
+$securityManager = new SecurityManager($pdo);
+$securityManager->secureSession();
+$securityManager->checkSessionTimeout();
+$csrf_token = $securityManager->generateCSRFToken();
+
+if (empty($_SESSION['loggedin']) || $_SESSION['user_type'] !== 'admin') {
+    header("Location: ../login.php");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -20,12 +18,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token); ?>">
     <title>Admin Dashboard</title>
     <link rel="stylesheet" href="../css/admin_header.css">
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script src="../js/voter.js" defer></script>
+    <script src="../js/logout.js" defer></script>
 </head>
 <body>
     <?php adminHeader('dashboard'); ?>
@@ -33,6 +32,7 @@
         <div id="logoutModalContent">
             <h3>Are you sure you want to log out?</h3>
             <form action="../logout.php" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <button type="submit" class="modal-btn confirm">Continue</button>
             </form>
             <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
@@ -41,7 +41,7 @@
     
     <h1>Welcome to the Admin Dashboard</h1>
     <p>
-        You are logged in as <?php echo $_SESSION['username']; ?>
+        You are logged in as <?php echo htmlspecialchars($_SESSION['username']); ?>
     </p>
     <div class="dashboard-container">
         <ul class="dashboard-list">

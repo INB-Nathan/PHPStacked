@@ -161,5 +161,108 @@ class UserManager {
             return "Database error: " . $e->getMessage();
         }
     }
+    
+    /**
+     * Get the user by their ID
+     * 
+     * @param int $userId The user ID to fetch
+     * @return array|false User data or false if not found
+     */
+    public function getUserById(int $userId) {
+        try {
+            $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = ?");
+            $stmt->execute([$userId]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching user by ID: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get the last inserted ID (useful after adding a new user)
+     * 
+     * @return string|int Last inserted ID
+     */
+    public function getLastInsertId() {
+        return $this->pdo->lastInsertId();
+    }
+    
+    /**
+     * Get all elections a voter can participate in
+     * 
+     * @param int $voterId The voter's ID
+     * @return array List of elections the voter can participate in
+     */
+    public function getVoterElections(int $voterId): array {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT e.id, e.title, e.description, e.start_date, e.end_date, e.status 
+                FROM elections e
+                INNER JOIN voter_elections ve ON e.id = ve.election_id
+                WHERE ve.voter_id = ?
+                ORDER BY e.start_date DESC
+            ");
+            $stmt->execute([$voterId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching voter elections: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Update which elections a voter can participate in
+     * 
+     * @param int $voterId The voter's ID
+     * @param array $electionIds Array of election IDs the voter should have access to
+     * @return bool|string True on success, error message on failure
+     */
+    public function updateVoterElections(int $voterId, array $electionIds): bool|string {
+        try {
+            $this->pdo->beginTransaction();
+            
+            // First validate that the voter exists and is actually a voter
+            $voterCheck = $this->pdo->prepare("SELECT id FROM users WHERE id = ? AND user_type = 'voter'");
+            $voterCheck->execute([$voterId]);
+            if (!$voterCheck->fetch()) {
+                $this->pdo->rollBack();
+                return "Invalid voter ID or user is not a voter";
+            }
+            
+            // Delete all current election associations for this voter
+            $deleteStmt = $this->pdo->prepare("DELETE FROM voter_elections WHERE voter_id = ?");
+            $deleteStmt->execute([$voterId]);
+            
+            // If there are new elections to assign
+            if (!empty($electionIds)) {
+                // Prepare the insert statement for all new elections
+                $insertSql = "INSERT INTO voter_elections (voter_id, election_id) VALUES ";
+                $insertParams = [];
+                $placeholders = [];
+                
+                // Build the query and parameters
+                foreach ($electionIds as $electionId) {
+                    if (!is_numeric($electionId)) continue; // Skip non-numeric IDs
+                    $placeholders[] = "(?, ?)";
+                    $insertParams[] = $voterId;
+                    $insertParams[] = $electionId;
+                }
+                
+                if (!empty($placeholders)) {
+                    $insertSql .= implode(", ", $placeholders);
+                    $insertStmt = $this->pdo->prepare($insertSql);
+                    $insertStmt->execute($insertParams);
+                }
+            }
+            
+            $this->pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->pdo->rollBack();
+            error_log("Error updating voter elections: " . $e->getMessage());
+            return "Database error: " . $e->getMessage();
+        }
+    }
 }
 ?>

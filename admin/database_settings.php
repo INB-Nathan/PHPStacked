@@ -1,6 +1,11 @@
 <?php
-require_once '../includes/autoload.php'; // This loads all our classes and db_connect.php
+require_once '../includes/autoload.php';
 session_start();
+
+$securityManager = new SecurityManager($pdo);
+$securityManager->secureSession();
+$securityManager->checkSessionTimeout();
+$csrf_token = $securityManager->generateCSRFToken();
 
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') {
     header('Location: ../login.php');
@@ -13,7 +18,11 @@ $message = '';
 $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['admin_password'])) {
+    if (!isset($_POST['csrf_token']) || !$securityManager->validateCSRFToken($_POST['csrf_token'])) {
+        $message = "Security validation failed. Please try again.";
+        $message_type = 'error';
+    }
+    else if (isset($_POST['admin_password'])) {
         if ($dbManager->verifyAdminPassword($_POST['admin_password'])) {
             $action = $_POST['action'] ?? '';
             
@@ -76,6 +85,7 @@ $counts = $dbManager->getRecordCounts();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token); ?>">
     <title>Database Maintenance</title>
     <link rel="stylesheet" href="../css/admin_header.css?v=1.1">
     <link rel="stylesheet" href="../css/admin_index.css">
@@ -83,6 +93,7 @@ $counts = $dbManager->getRecordCounts();
     <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="../css/admin_database.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="../js/logout.js" defer></script>
 </head>
 <body>
     <?php adminHeader('admin'); ?>
@@ -91,6 +102,7 @@ $counts = $dbManager->getRecordCounts();
         <div id="logoutModalContent">
             <h3>Are you sure you want to log out?</h3>
             <form action="../logout.php" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <button type="submit" class="modal-btn confirm">Continue</button>
             </form>
             <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
@@ -103,6 +115,7 @@ $counts = $dbManager->getRecordCounts();
             <p id="modalMessage">Are you sure you want to perform this action? This cannot be undone.</p>
             <form id="confirmForm" method="post">
                 <input type="hidden" id="actionInput" name="action" value="">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <div>
                     <label for="adminPassword">Enter Administrator Password:</label>
                     <input type="password" id="adminPassword" name="admin_password" class="password-field" required>
@@ -176,6 +189,8 @@ $counts = $dbManager->getRecordCounts();
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
             const actionButtons = document.querySelectorAll('.action-btn');
             const confirmationModal = document.getElementById('confirmationModal');
             const modalMessage = document.getElementById('modalMessage');
@@ -209,6 +224,7 @@ $counts = $dbManager->getRecordCounts();
                     
                     actionInput.value = action;
                     confirmationModal.style.display = 'flex';
+                    document.getElementById('adminPassword').focus();
                 });
             });
             
@@ -222,18 +238,20 @@ $counts = $dbManager->getRecordCounts();
                 }
             });
             
-            document.getElementById('logoutNavBtn').onclick = e => {
-                e.preventDefault();
-                document.getElementById('logoutModal').classList.add('active');
-            };
-            document.getElementById('cancelLogoutBtn').onclick = () => {
-                document.getElementById('logoutModal').classList.remove('active');
-            };
-            document.getElementById('logoutModal').onclick = e => {
-                if (e.target === e.currentTarget) {
+            if (typeof logoutNavBtnClickHandler === 'undefined') {
+                document.getElementById('logoutNavBtn').onclick = e => {
+                    e.preventDefault();
+                    document.getElementById('logoutModal').classList.add('active');
+                };
+                document.getElementById('cancelLogoutBtn').onclick = () => {
                     document.getElementById('logoutModal').classList.remove('active');
-                }
-            };
+                };
+                document.getElementById('logoutModal').onclick = e => {
+                    if (e.target === e.currentTarget) {
+                        document.getElementById('logoutModal').classList.remove('active');
+                    }
+                };
+            }
         });
     </script>
 </body>

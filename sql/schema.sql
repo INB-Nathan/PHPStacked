@@ -79,6 +79,15 @@ CREATE TABLE votes (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
+CREATE TABLE voter_elections (
+    voter_id INT NOT NULL,
+    election_id INT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (voter_id, election_id),
+    FOREIGN KEY (voter_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 -- Seed data
 INSERT INTO parties (name, description)
 VALUES ('Independent', 'Independent Candidate');
