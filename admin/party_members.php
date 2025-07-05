@@ -71,7 +71,7 @@ try {
         c.name,
         p.position_name AS position,
         c.bio,
-        c.photo_path AS photo
+        c.photo AS photo
       FROM candidates c
       LEFT JOIN positions p ON c.position_id = p.id
       WHERE c.party_id = ?

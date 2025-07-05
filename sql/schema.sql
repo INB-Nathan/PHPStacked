@@ -10,8 +10,8 @@ CREATE TABLE elections (
     status ENUM('upcoming', 'active', 'completed', 'cancelled') DEFAULT 'upcoming',
     max_votes_per_user INT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    -- CONSTRAINT chk_election_dates CHECK (end_date > start_date)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT chk_election_dates CHECK (end_date > start_date)
 );
 
 CREATE TABLE positions (
@@ -30,9 +30,6 @@ CREATE TABLE users (
     full_name VARCHAR(255) NOT NULL,
     user_type ENUM('admin', 'voter') DEFAULT 'voter',
     is_active BOOLEAN DEFAULT TRUE,
-    last_login TIMESTAMP NULL,
-    session_id VARCHAR(128) NULL,
-    session_expires TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -93,5 +90,5 @@ INSERT INTO parties (name, description)
 VALUES ('Independent', 'Independent Candidate');
 
 -- Test admin user admin pogiako123
-INSERT INTO users (username, email, pass_hash, full_name, user_type)
-VALUES ('admin', 'admin@gmail.com', '$2y$10$hc.hkHLCeO91bZIp7BB4RuFhSvBjJNLd2AI7rngONlJVQDvdQLhOK', 'adminako', 'admin');
+INSERT INTO users (id,username, email, pass_hash, full_name, user_type)
+VALUES (1,'admin', 'admin@gmail.com', '$2y$10$hc.hkHLCeO91bZIp7BB4RuFhSvBjJNLd2AI7rngONlJVQDvdQLhOK', 'adminako', 'admin');

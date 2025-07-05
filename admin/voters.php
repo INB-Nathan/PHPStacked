@@ -7,7 +7,6 @@ $securityManager->secureSession();
 $securityManager->checkSessionTimeout();
 $csrf_token = $securityManager->generateCSRFToken();
 
-// Only allow access if logged in and user is admin
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: ../login.php");
     exit;
@@ -18,11 +17,9 @@ $electionManager = new ElectionManager($pdo);
 
 $elections = $electionManager->getAll();
 
-// Voter management messages
 $message = "";
 $messageType = "";
 
-// Edit voter election permissions
 if (isset($_GET['edit_permissions']) && is_numeric($_GET['edit_permissions'])) {
     $voter_id = (int)$_GET['edit_permissions'];
     $voter_details = $userManager->getUserById($voter_id);

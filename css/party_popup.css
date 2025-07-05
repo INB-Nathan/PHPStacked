@@ -107,10 +107,20 @@
     padding: 28px 36px 24px 36px;
     max-width: 600px;
     width: 95%;
+    max-height: 80vh; /* Limit height to 80% of viewport height */
     border-radius: 12px;
     position: relative;
     box-shadow: 0 6px 30px 0 rgba(0, 0, 0, .18);
     z-index: 10000;
+    overflow: hidden; /* Hide any overflow from the container itself */
+    display: flex;
+    flex-direction: column;
+}
+
+#partyMembersInner {
+    overflow-y: auto; /* Make content area scrollable */
+    max-height: calc(80vh - 100px); /* Account for padding and headers */
+    padding-right: 10px; /* Add some padding for the scrollbar */
 }
 
 #closeModalBtn {

@@ -12,7 +12,9 @@ $classFiles = [
     'admin_header.php',
     'database_manager.php',
     'user_manager.php',
-    'security.php'
+    'security.php',
+    'vote_manager.php',
+    'statistics_manager.php'
 ];
 
 foreach ($classFiles as $file) {

@@ -27,7 +27,7 @@ $name         = '';       // Name ng candidate
 $position_id  = null;     // Position ID na tinatakbuhan
 $party_id     = null;     // Party ID kung meron
 $description  = '';       // Description or platform
-$photo_path   = null;     // Path ng photo ng candidate (for editing)
+$photo        = null;     // Path ng photo ng candidate (for editing)
 $election_id  = null;     // Election ID that this candidate belongs to
 
 // Determine if we are adding or editing a candidate
@@ -58,7 +58,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
             $position_id  = $candidate_to_edit['position_id'];
             $party_id     = $candidate_to_edit['party_id'];
             $description  = $candidate_to_edit['description'];
-            $photo_path   = $candidate_to_edit['photo_path'];
+            $photo        = $candidate_to_edit['photo'];
             $election_id  = $candidate_to_edit['election_id'];
             
             // Get positions specific to this election
@@ -103,8 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $election_id = filter_input(INPUT_POST, 'election_id', FILTER_VALIDATE_INT);
 
     // Get the current photo path (only for update)
-    $current_photo_path  = $_POST['current_photo_path'] ?? null;
-    $uploaded_photo_path = $current_photo_path;
+    $current_photo  = $_POST['current_photo'] ?? null;
+    $uploaded_photo = $current_photo;
 
     // If the action is 'add' or 'update'
     if ($action === 'add' || $action === 'update') {
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $position_id = $candidate_to_edit['position_id'];
                     $party_id    = $candidate_to_edit['party_id'];
                     $description = $candidate_to_edit['description'];
-                    $photo_path  = $candidate_to_edit['photo_path'];
+                    $photo       = $candidate_to_edit['photo'];
                     $election_id = $candidate_to_edit['election_id'];
                 }
             }
@@ -141,10 +141,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message_type = 'error';
                 } else {
                     // If updating and there's an old photo, delete it
-                    if ($action === 'update' && $current_photo_path) {
-                        FileHandler::deleteFile($current_photo_path);
+                    if ($action === 'update' && $current_photo) {
+                        FileHandler::deleteFile($current_photo);
                     }
-                    $uploaded_photo_path = $new_path;
+                    $uploaded_photo = $new_path;
                 }
             }
 
@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $position_id,
                         $party_id,
                         $description,
-                        $uploaded_photo_path
+                        $uploaded_photo
                     );
                     if ($result === true) {
                         $message      = 'Candidate added successfully!';
@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $party_id     = null;
                         $election_id  = null;
                         $description  = '';
-                        $photo_path   = null;
+                        $photo        = null;
                     } else {
                         // If hindi na-add ang candidate (result is an error string)
                         $message      = $result; // Display the specific error message
@@ -184,13 +184,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $position_id,
                         $party_id,
                         $description,
-                        $uploaded_photo_path
+                        $uploaded_photo
                     );
                     if ($result === true) {
                         $message      = 'Candidate updated successfully!';
                         $message_type = 'success';
-                        // Update the current photo_path variable for display
-                        $photo_path   = $uploaded_photo_path;
+                        // Update the current photo variable for display
+                        $photo        = $uploaded_photo;
                     } else {
                         // If hindi na-update ang candidate (result is an error string)
                         $message      = $result; // Display the specific error message
@@ -332,7 +332,7 @@ error_reporting(E_ALL);
                 <form action="candidates.php?action=edit&id=<?php echo htmlspecialchars($candidate_id); ?>" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="update">
                     <input type="hidden" name="id" value="<?php echo htmlspecialchars($candidate_id); ?>">
-                    <input type="hidden" name="current_photo_path" value="<?php echo htmlspecialchars($photo_path ?? ''); ?>">
+                    <input type="hidden" name="current_photo" value="<?php echo htmlspecialchars($photo ?? ''); ?>">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
 
                     <div class="form-group">
@@ -384,8 +384,8 @@ error_reporting(E_ALL);
 
                     <div class="form-group">
                         <label for="photo">Candidate Photo:</label>
-                        <?php if ($photo_path): // If may photo na ?>
-                            <img src="../<?php echo htmlspecialchars($photo_path); ?>" alt="Current Candidate Photo" style="max-width: 200px; margin: 10px 0;">
+                        <?php if ($photo): // If may photo na ?>
+                            <img src="../<?php echo htmlspecialchars($photo); ?>" alt="Current Candidate Photo" style="max-width: 200px; margin: 10px 0;">
                             <p>Current photo. Upload new to change.</p>
                         <?php else: // If walang photo ?>
                             <p>No photo uploaded yet.</p>
@@ -488,8 +488,8 @@ error_reporting(E_ALL);
                     <?php foreach ($candidates as $candidate_row): // Loop through each candidate ?>
                         <tr>
                             <td>
-                                <?php if ($candidate_row['photo_path']): // If may photo ang candidate ?>
-                                    <img src="../<?php echo htmlspecialchars($candidate_row['photo_path']); ?>" alt="<?php echo htmlspecialchars($candidate_row['name']); ?>" class="candidate-photo">
+                                <?php if ($candidate_row['photo']): // If may photo ang candidate ?>
+                                    <img src="../<?php echo htmlspecialchars($candidate_row['photo']); ?>" alt="<?php echo htmlspecialchars($candidate_row['name']); ?>" class="candidate-photo">
                                 <?php else: // If walang photo ?>
                                     No Photo
                                 <?php endif; ?>
@@ -598,13 +598,26 @@ error_reporting(E_ALL);
                     
                     partyDropdown.innerHTML = '';
                     
-                    const independentOption = document.createElement('option');
-                    independentOption.value = '1';
-                    independentOption.textContent = 'Independent';
-                    partyDropdown.appendChild(independentOption);
+                    // Look for the Independent party in the list
+                    let independentParty = parties.find(party => party.name.toLowerCase() === 'independent');
                     
+                    // If Independent party exists, add it as first option
+                    if (independentParty) {
+                        const independentOption = document.createElement('option');
+                        independentOption.value = independentParty.id;
+                        independentOption.textContent = 'Independent';
+                        partyDropdown.appendChild(independentOption);
+                    } else {
+                        // If no Independent party exists, add option for null party_id
+                        const independentOption = document.createElement('option');
+                        independentOption.value = '0'; // This will be treated as NULL in the backend
+                        independentOption.textContent = 'Independent (No Party)';
+                        partyDropdown.appendChild(independentOption);
+                    }
+                    
+                    // Add all other parties
                     parties.forEach(party => {
-                        if (party.name.toLowerCase() === 'independent') return;
+                        if (party.name.toLowerCase() === 'independent') return; // Skip Independent as we already added it
                         
                         const option = document.createElement('option');
                         option.value = party.id;

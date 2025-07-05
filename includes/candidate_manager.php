@@ -27,6 +27,12 @@ class CandidateManager
                  VALUES
                  (:election_id, :name, :position_id, :party_id, :bio, :photo)"
             );
+            
+            // If party_id is 0, set it to NULL (for independent candidates)
+            if ($party_id === 0) {
+                $party_id = null;
+            }
+            
             $stmt->execute([
                 'election_id' => $electionId,
                 'name'        => $name,
@@ -99,6 +105,11 @@ class CandidateManager
         ?string $photoPath = null
     ): bool|string {
         try {
+            // If party_id is 0, set it to NULL (for independent candidates)
+            if ($party_id === 0) {
+                $party_id = null;
+            }
+            
             if ($photoPath !== null) {
                 $sql = "
                   UPDATE candidates SET

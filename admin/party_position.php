@@ -12,26 +12,21 @@ if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') 
     exit;
 }
 
-// Initialize managers
 $partyManager = new PartyManager($pdo);
 $positionManager = new PositionManager($pdo);
 $electionManager = new ElectionManager($pdo);
 $candidateManager = new CandidateManager($pdo);
 
-// Get all elections for dropdown
 $elections = $electionManager->getAll();
 
-// Party messages & state
 $addError = $partyAddSuccess = $partyEditError = $partyEditSuccess = '';
 $partyDeleteError = $partyDeleteSuccess = '';
 $editing_id = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
 
-// Position messages & state
 $posAddError = $posAddSuccess = $posEditError = $posEditSuccess = '';
 $posDeleteError = $posDeleteSuccess = '';
 $pos_editing_id = isset($_GET['edit_position']) ? (int)$_GET['edit_position'] : 0;
 
-// Selected election filter
 $selected_election_id = isset($_GET['election_id']) ? (int)$_GET['election_id'] : (isset($_POST['election_id']) ? (int)$_POST['election_id'] : null);
 
 // --- Check for CSRF token on all POST requests ---
