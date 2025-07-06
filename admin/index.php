@@ -24,7 +24,7 @@ if (empty($_SESSION['loggedin']) || $_SESSION['user_type'] !== 'admin') {
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script src="../js/logout.js" defer></script>
+    <script src="../js/voter.js" defer></script>
 </head>
 <body>
     <?php adminHeader('dashboard'); ?>
