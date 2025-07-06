@@ -1,9 +1,11 @@
 <?php
 require_once '../includes/autoload.php';
-session_start();
 
 $securityManager = new SecurityManager($pdo);
 $securityManager->secureSession();
+
+session_start();
+
 $securityManager->checkSessionTimeout();
 $csrf_token = $securityManager->generateCSRFToken();
 
@@ -17,7 +19,6 @@ $electionManager = new ElectionManager($pdo);
 $addError = $addSuccess = $editError = $editSuccess = $deleteError = $deleteSuccess = '';
 $editing_id = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
 
-// --- Validate CSRF token for all POST requests ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !$securityManager->validateCSRFToken($_POST['csrf_token'])) {
         $csrf_error = 'Security validation failed. Please try again.';
@@ -25,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// --- ADD ELECTION ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_election'])) {
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -44,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_election'])) {
     }
 }
 
-// --- UPDATE ELECTION ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_election'])) {
     $id = (int)$_POST['election_id'];
     $title = trim($_POST['title'] ?? '');
@@ -71,7 +70,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_election'])) {
     }
 }
 
-// --- DELETE ELECTION ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_election'])) {
     $id = (int)$_POST['election_id'];
     $result = $electionManager->deleteElection($id);
@@ -83,7 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_election'])) {
     }
 }
 
-// --- FETCH ELECTIONS ---
 try {
     $elections = $electionManager->getAll();
 } catch (PDOException $e) {
@@ -91,7 +88,6 @@ try {
     $fetchError = "Could not fetch elections: " . htmlspecialchars($e->getMessage());
 }
 
-// --- Fetch single for edit if needed
 $editing_election = null;
 if ($editing_id) {
     $row = $electionManager->getById($editing_id);
@@ -190,7 +186,7 @@ render_page:
                         <?php if ($editing_election): ?>
                             <input type="hidden" name="election_id" value="<?= $editing_election['id'] ?>">
                             <button type="submit" name="update_election" class="btn-save">Update Election</button>
-                            <a href="admin_election.php" class="btn-cancel">Cancel</a>
+                            <a href="election.php" class="btn-cancel">Cancel</a>
                         <?php else: ?>
                             <button type="submit" name="add_election" class="btn-save">Add Election</button>
                         <?php endif; ?>
@@ -233,7 +229,7 @@ render_page:
                                 </td>
                                 <td style="text-align:center;"><?= htmlspecialchars($election['max_votes_per_user']) ?></td>
                                 <td>
-                                    <a href="admin_election.php?edit=<?= $election['id'] ?>" class="btn-edit">Edit</a>
+                                    <a href="election.php?edit=<?= $election['id'] ?>" class="btn-edit">Edit</a>
                                     <form method="post" style="display:inline;" onsubmit="return confirm('Delete this election?');">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                         <input type="hidden" name="election_id" value="<?= $election['id'] ?>">

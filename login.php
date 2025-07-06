@@ -1,12 +1,11 @@
 <?php
-session_start();
-require_once "includes/autoload.php"; // Make sure the path to autoload is correct
+require_once "includes/autoload.php";
 
-// Initialize SecurityManager
 $securityManager = new SecurityManager($pdo);
 $securityManager->secureSession();
 
-// Generate CSRF token for the form
+session_start();
+$securityManager->checkSessionTimeout(); //para sa session management
 $csrf_token = $securityManager->generateCSRFToken();
 
 $error = "";
@@ -16,6 +15,7 @@ if (isset($_GET['msg']) && $_GET['msg'] === 'timeout') {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Check CSRF token for security.
     if (!$securityManager->validateCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = "Security validation failed. Please try again.";
     } else {
@@ -24,20 +24,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         if ($username && $password) {
             try {
+                // Prepare and execute the query to fetch user details.
                 $stmt = $pdo->prepare("SELECT id, username, pass_hash, user_type, is_active FROM users WHERE username = :username LIMIT 1");
                 $stmt->execute(['username' => $username]);
                 $user = $stmt->fetch();
                 
+                // Check if user exists and is active.
                 if ($user && $user['is_active']) {
+                    // Verify the password.
                     if (password_verify($password, $user['pass_hash'])) {
+                        // Regenerate session ID para sa session fixation protection.
                         $securityManager->regenerateSession();
                         
+                        // Set session variables.
                         $_SESSION['loggedin'] = true;
                         $_SESSION['username'] = $user['username'];
                         $_SESSION['user_id'] = $user['id'];
                         $_SESSION['user_type'] = $user['user_type'];
-                        $_SESSION['last_activity'] = time();
+                        // $_SESSION['last_activity'] is already set by secureSession() and updated by checkSessionTimeout()
                         
+                        // Redirect user based on user type.
                         if ($user['user_type'] == 'admin') {
                             header("Location: admin/");
                             exit;
@@ -47,11 +53,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         }
                     }
                 }
+                // Kung invalid credentials or inactive user.
                 $error = "Invalid username or password.";
             } catch (PDOException $e) {
+                // Catch any database errors.
                 $error = "Database error: " . $e->getMessage();
             }
         } else {
+            // Kung may kulang sa username o password.
             $error = "Please enter both username and password.";
         }
     }

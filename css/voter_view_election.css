@@ -1,0 +1,127 @@
+/* General Body and HTML styles (if not already in a common CSS file) */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f7f6; /* Light background */
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Main Heading for the page */
+h1 {
+    font-size: 2.5em;
+    color: #2ecc71; /* Green, matching your dashboard buttons */
+    text-align: center;
+    /* ADJUST THIS MARGIN-TOP */
+    margin-top: 80px; /* Increased margin-top para may space from header. Adjust as needed. */
+    margin-bottom: 30px;
+    font-weight: bold;
+}
+
+/* Container for "No active elections assigned" message */
+p { /* This targets all <p> tags, which might not be what you want globally. Consider a specific class. */
+    text-align: center;
+    font-size: 1.2em;
+    color: #888;
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 600px;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+}
+
+/* Styles for individual election cards */
+.election-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    max-width: 800px; /* Adjust as needed */
+    margin: 30px auto; /* Center the card, with some top/bottom margin */
+    box-sizing: border-box;
+    text-align: center; /* THIS IS THE KEY CHANGE */
+}
+
+.election-card h2 {
+    font-size: 2em;
+    color: #444;
+    margin-top: 0; /* Keep this as 0, the card's margin handles overall spacing */
+    margin-bottom: 15px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    text-align: center; /* Ensure h2 is centered */
+}
+
+.election-card p {
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #555;
+    text-align: center; /* Ensure paragraphs are centered */
+    padding: 0; /* Remove default p padding */
+    max-width: 100%; /* Ensure it takes full width of parent */
+    background-color: transparent; /* Remove background inherited from general p */
+}
+
+/* Status styling within the election card */
+.election-card p .status-text {
+    font-weight: bold;
+}
+
+/* Specific status colors, matching admin panel or your desired look */
+.election-card p .status-text.active {
+    color: #4CAF50; /* Green */
+}
+.election-card p .status-text.upcoming {
+    color: #ffc107; /* Orange/Yellow */
+}
+.election-card p .status-text.completed {
+    color: #6c757d; /* Gray */
+}
+.election-card p .status-text.cancelled {
+    color: #dc3545; /* Red */
+}
+
+
+/* Table styles for candidates and votes */
+.party-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 25px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.party-table th,
+.party-table td {
+    border: 1px solid #ddd;
+    padding: 12px 15px;
+    text-align: left; /* Keep table cell content left-aligned for readability */
+}
+
+.party-table th {
+    background-color: #f2f2f2;
+    color: #555;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.party-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.party-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Ensure the "No candidates found" message within an election card is styled correctly */
+.no-candidates-message {
+    text-align: center; /* Ensure this specific message is centered */
+    font-style: italic;
+    color: #888;
+    background-color: #f0f0f0;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 20px;
+    margin-bottom: 0; /* Adjust if needed */
+}

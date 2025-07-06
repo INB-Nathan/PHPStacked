@@ -88,9 +88,9 @@ class Election {
         try {
             $sql = "
                 INSERT INTO elections
-                  (title, description, start_date, end_date, status, max_votes_per_user)
+                    (title, description, start_date, end_date, status, max_votes_per_user)
                 VALUES
-                  (:title, :description, :start_date, :end_date, :status, :max_votes)
+                    (:title, :description, :start_date, :end_date, :status, :max_votes)
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([
@@ -111,12 +111,12 @@ class Election {
         try {
             $sql = "
                 UPDATE elections SET
-                  title               = :title,
-                  description         = :description,
-                  start_date          = :start_date,
-                  end_date            = :end_date,
-                  status              = :status,
-                  max_votes_per_user  = :max_votes
+                    title               = :title,
+                    description         = :description,
+                    start_date          = :start_date,
+                    end_date            = :end_date,
+                    status              = :status,
+                    max_votes_per_user  = :max_votes
                 WHERE id = :id
             ";
             $stmt = $this->pdo->prepare($sql);
@@ -160,6 +160,42 @@ class Election {
             return 'DB Error (getById): ' . $e->getMessage();
         }
     }
-}
 
+    /**
+     * Fetches candidates and their vote counts for a specific election.
+     *
+     * @param int $electionId The ID of the election.
+     * @return array An array of candidate data, including their vote counts.
+     */
+    public function getCandidatesWithVotes(int $electionId): array {
+        $sql = "
+            SELECT
+                c.id,
+                c.name,
+                c.description,
+                c.photo,
+                c.vote_count,
+                p.position_name,
+                pa.name AS party_name
+            FROM
+                candidates c
+            JOIN
+                positions p ON c.position_id = p.id
+            LEFT JOIN
+                parties pa ON c.party_id = pa.id
+            WHERE
+                c.election_id = :election_id
+            ORDER BY
+                p.position_name ASC, c.name ASC;
+        ";
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['election_id' => $electionId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getCandidatesWithVotes: " . $e->getMessage());
+            return []; // Return an empty array on error
+        }
+    }
+}
 ?>
