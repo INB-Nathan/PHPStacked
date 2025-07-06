@@ -14,8 +14,8 @@ if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'voter') 
 <head>
     <meta charset="UTF-8">
     <title>Voter Dashboard</title>
-    <link rel="stylesheet" href="../css/admin_header.css">
     <link rel="stylesheet" href="../css/admin_index.css">
+    <link rel="stylesheet" href="../css/admin_header.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
