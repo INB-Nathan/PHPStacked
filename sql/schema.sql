@@ -91,4 +91,4 @@ VALUES ('Independent', 'Independent Candidate');
 
 -- Test admin user admin pogiako123
 INSERT INTO users (id,username, email, pass_hash, full_name, user_type)
-VALUES (1,'admin', 'admin@gmail.com', '$2y$10$hc.hkHLCeO91bZIp7BB4RuFhSvBjJNLd2AI7rngONlJVQDvdQLhOK', 'adminako', 'admin');
+VALUES (1,'admin', 'admin@gmail.com', '$2y$10$7R5Dnb4ddsLB7UtjcM7Rje7MHpUVJ7ShqqilF2UtkAh019MHSY526', 'adminako', 'admin');
