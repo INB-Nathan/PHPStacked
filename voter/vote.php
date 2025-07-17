@@ -157,6 +157,20 @@ $pageTitle = "Vote - " . htmlspecialchars($election['title']);
 
 // Generate CSRF token for security
 $csrf_token = $securityManager->generateCSRFToken();
+
+// Get all eligible elections for this user
+$eligibleElections = $voteManager->getEligibleElections($userId);
+
+// Build an array of allowed election IDs
+$allowedElectionIds = array_column($eligibleElections, 'id');
+
+// Check if the requested election_id is in the allowed list
+if (!in_array($electionId, $allowedElectionIds)) {
+    // Not allowed to vote in this election
+    echo "<div style='color:red;'>You are not eligible to vote in this election.</div>";
+    header("Refresh: 3; URL=available_elections.php");
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
