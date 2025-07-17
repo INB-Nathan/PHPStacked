@@ -1,5 +1,10 @@
 <?php
-include 'includes/functions.php';
+// Define that we've loaded the application
+define('APP_LOADED', true);
+
+// Load autoload.php which includes security headers
+require_once "includes/autoload.php";
+
 /**
  * This is the main entry point of PHPStacked - Election System.
  */

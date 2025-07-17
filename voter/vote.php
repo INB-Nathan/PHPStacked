@@ -1,23 +1,24 @@
 <?php
 require_once '../includes/autoload.php';
+require_once '../includes/voter_header.php';
 session_start();
 
 // Include security checks
 $securityManager = new SecurityManager($pdo);
 $securityManager->secureSession();
 $securityManager->checkSessionTimeout('../login.php');
+$csrf_token = $securityManager->generateCSRFToken();
 
 // Ensure the user is logged in and is a voter
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'voter') {
-    http_response_code(403);
-    echo "<div style='color:red;'>Access denied. Only voters can access this page.</div>";
+    header("Location: ../login.php");
     exit;
 }
 
 // Get the current user's ID
 $userId = $_SESSION['user_id'] ?? 0;
 if (!$userId) {
-    echo "<div style='color:red;'>User ID not found in session.</div>";
+    header("Location: ../login.php?msg=invalid_session");
     exit;
 }
 
@@ -29,14 +30,14 @@ $electionId = isset($_GET['election_id']) ? (int)$_GET['election_id'] : 0;
 
 // Check if the election ID is valid
 if (!$electionId) {
-    header("Location: all_elections.php");
+    header("Location: available_elections.php");
     exit;
 }
 
 // Check if the user has already voted in this election
 if ($voteManager->hasUserVoted($userId, $electionId)) {
     echo "<div style='color:red;'>You have already voted in this election.</div>";
-    header("Refresh: 3; URL=all_elections.php");
+    header("Refresh: 3; URL=available_elections.php");
     exit;
 }
 
@@ -47,7 +48,7 @@ $electionManager = new ElectionManager($pdo);
 $election = $electionManager->getById($electionId);
 if (!$election) {
     echo "<div style='color:red;'>Election not found.</div>";
-    header("Refresh: 3; URL=all_elections.php");
+    header("Refresh: 3; URL=available_elections.php");
     exit;
 }
 
@@ -74,7 +75,7 @@ if ($election['status'] !== 'active' || $nowTimestamp < $startTimestamp || $nowT
     echo "<div style='color:red;'>This election is not currently active.</div>";
     echo "<div style='color:#666;font-size:0.9em;margin-top:10px;'>Reason: $reason</div>";
     echo "<div style='color:#666;font-size:0.9em;margin-top:5px;'>Current time: $now</div>";
-    header("Refresh: 5; URL=all_elections.php"); // Increased refresh time to see the debug info
+    header("Refresh: 5; URL=available_elections.php"); // Increased refresh time to see the debug info
     exit;
 }
 
@@ -135,15 +136,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vote'])) {
 
 // Set page title
 $pageTitle = "Vote - " . htmlspecialchars($election['title']);
+
+// Generate CSRF token for security
+$csrf_token = $securityManager->generateCSRFToken();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token); ?>">
     <title><?= $pageTitle ?></title>
-    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/admin_header.css">
+    <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/voter.css">
+    <link rel="stylesheet" href="../css/admin_popup.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="../js/logout.js" defer></script>
     <style>
         .election-info {
             background-color: #f9f9f9;
@@ -291,18 +300,60 @@ $pageTitle = "Vote - " . htmlspecialchars($election['title']);
         .back-link:hover {
             text-decoration: underline;
         }
+        
+        /* Logout Modal Styles */
+        .logout-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .logout-modal.active {
+            display: flex;
+        }
+        
+        .logout-modal-content {
+            background-color: #fff;
+            padding: 24px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
+    <?php require_once '../includes/voter_header.php'; ?>
+    <?php voterHeader('vote'); ?>
+    
+    <!-- Logout Modal -->
+    <div id="logoutModal" class="logout-modal">
+        <div class="logout-modal-content">
+            <h3>Are you sure you want to log out?</h3>
+            <form action="../logout.php" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                <button type="submit" class="modal-btn confirm">Continue</button>
+            </form>
+            <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
+        </div>
+    </div>
+    
     <div class="container">
-        <header>
-            <h1><?= $pageTitle ?></h1>
-            <nav>
-                <a href="index.php">Dashboard</a> |
-                <a href="all_elections.php">All Elections</a> |
-                <a href="../logout.php">Logout</a>
-            </nav>
-        </header>
+        <h1><?= $pageTitle ?></h1>
         
         <?php if (!empty($message)): ?>
             <div class="message error">
@@ -375,9 +426,11 @@ $pageTitle = "Vote - " . htmlspecialchars($election['title']);
             </form>
         <?php endif; ?>
         
-        <footer>
-            <a href="all_elections.php" class="back-link">Back to Elections</a>
-        </footer>
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="available_elections.php" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Available Elections
+            </a>
+        </div>
     </div>
     
     <script>

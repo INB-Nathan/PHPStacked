@@ -24,20 +24,10 @@ if (empty($_SESSION['loggedin']) || $_SESSION['user_type'] !== 'admin') {
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script src="../js/voter.js" defer></script>
+    <script src="../js/logout.js" defer></script>
 </head>
 <body>
-    <?php adminHeader('dashboard'); ?>
-    <div id="logoutModal">
-        <div id="logoutModalContent">
-            <h3>Are you sure you want to log out?</h3>
-            <form action="../logout.php" method="post" style="display:inline;">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                <button type="submit" class="modal-btn confirm">Continue</button>
-            </form>
-            <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
-        </div>
-    </div>
+    <?php adminHeader('dashboard', $csrf_token); ?>
     
     <h1>Welcome to the Admin Dashboard</h1>
     <p>

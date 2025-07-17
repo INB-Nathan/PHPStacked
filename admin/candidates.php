@@ -304,19 +304,10 @@ error_reporting(E_ALL);
     <link rel="stylesheet" href="../css/candidates.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="../js/logout.js" defer></script>
 </head>
 <body>
-    <?php adminHeader('candidates'); ?>
-    <div id="logoutModal">
-        <div id="logoutModalContent">
-            <h3>Are you sure you want to log out?</h3>
-            <form action="../logout.php" method="post" style="display:inline;">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                <button type="submit" class="modal-btn confirm">Continue</button>
-            </form>
-            <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
-        </div>
-    </div>
+    <?php adminHeader('candidates', $csrf_token); ?>
     <div class="container">
         <h1>Candidate Management</h1>
 
@@ -529,17 +520,6 @@ error_reporting(E_ALL);
     </div>
 
     <script>
-        document.getElementById('logoutNavBtn').onclick = function(e) {
-            e.preventDefault();
-            document.getElementById('logoutModal').classList.add('active');
-        };
-        document.getElementById('cancelLogoutBtn').onclick = function() {
-            document.getElementById('logoutModal').classList.remove('active');
-        };
-        document.getElementById('logoutModal').onclick = function(e) {
-            if (e.target === this) this.classList.remove('active');
-        };
-        
         function updatePositionsAndParties() {
             const electionId = document.getElementById('election_id').value;
             const positionDropdown = document.getElementById('position_id');

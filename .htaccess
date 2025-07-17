@@ -1,0 +1,82 @@
+# Apache .htaccess security configuration for PHPStacked
+
+# Prevent directory listing
+Options -Indexes
+
+# Disable server signature
+ServerSignature Off
+
+# Disable execution of PHP in uploads directory
+# Use FilesMatch in the uploads directory with a separate .htaccess file
+# This will be created later
+
+# Enable mod_rewrite
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Block access to sensitive files
+    RewriteRule ^(includes|sql)/.*$ - [F,L]
+    
+    # Protect .htaccess, .git and other sensitive files
+    RewriteRule ^\.htaccess$ - [F]
+    RewriteRule ^\.git/.*$ - [F]
+    
+    # Deny access to filenames starting with dot (.)
+    RewriteRule (^|/)\.(?!well-known) - [F]
+    
+    # Protect from file extension manipulation
+    RewriteCond %{THE_REQUEST} \.(php|sql|htaccess|htpasswd)\. [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# Protect against XSS, clickjacking and other vulnerabilities
+<IfModule mod_headers.c>
+    # Set X-Content-Type-Options
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # Set X-Frame-Options
+    Header always set X-Frame-Options "SAMEORIGIN"
+    
+    # Set X-XSS-Protection
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Set Content-Security-Policy
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; connect-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'"
+    
+    # Remove PHP version info
+    Header unset X-Powered-By
+</IfModule>
+
+# Set default character set
+AddDefaultCharset UTF-8
+
+# PHP settings (if PHP is loaded as Apache module)
+<IfModule mod_php.c>
+    # Disable showing PHP errors to visitors
+    php_flag display_errors off
+    
+    # Security settings
+    php_flag allow_url_fopen off
+    php_flag allow_url_include off
+    php_flag expose_php off
+    php_flag log_errors on
+    php_flag register_globals off
+    php_value max_input_time 30
+    php_value post_max_size 8M
+    php_value upload_max_filesize 2M
+    php_value memory_limit 128M
+</IfModule>
+
+# Disallow accessing raw php source by trying to access /index.php~
+<Files ~ "\.php$">
+    # Ensure access to PHP files is permitted
+    Order allow,deny
+    Allow from all
+</Files>
+
+# Disallow accessing backup copies and disabled files
+<FilesMatch "(\.(bak|config|dist|fla|inc|ini|log|psd|sh|sql|swp)|~|disabled)$">
+    Order allow,deny
+    Deny from all
+    Satisfy All
+</FilesMatch>

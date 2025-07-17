@@ -1,67 +1,65 @@
 <?php
+define('APP_LOADED', true);
+
 require_once "includes/autoload.php";
 
 $securityManager = new SecurityManager($pdo);
 $securityManager->secureSession();
 
 session_start();
-$securityManager->checkSessionTimeout(); //para sa session management
+$securityManager->checkSessionTimeout();
 $csrf_token = $securityManager->generateCSRFToken();
 
 $error = "";
-
 if (isset($_GET['msg']) && $_GET['msg'] === 'timeout') {
     $error = "Your session has expired due to inactivity. Please log in again.";
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Check CSRF token for security.
     if (!$securityManager->validateCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = "Security validation failed. Please try again.";
     } else {
-        $username = trim($_POST['username'] ?? '');
+        $username = isset($_POST['username']) ? InputValidator::sanitizeString($_POST['username']) : '';
         $password = $_POST['password'] ?? '';
         
-        if ($username && $password) {
-            try {
-                // Prepare and execute the query to fetch user details.
-                $stmt = $pdo->prepare("SELECT id, username, pass_hash, user_type, is_active FROM users WHERE username = :username LIMIT 1");
-                $stmt->execute(['username' => $username]);
-                $user = $stmt->fetch();
-                
-                // Check if user exists and is active.
-                if ($user && $user['is_active']) {
-                    // Verify the password.
-                    if (password_verify($password, $user['pass_hash'])) {
-                        // Regenerate session ID para sa session fixation protection.
-                        $securityManager->regenerateSession();
-                        
-                        // Set session variables.
-                        $_SESSION['loggedin'] = true;
-                        $_SESSION['username'] = $user['username'];
-                        $_SESSION['user_id'] = $user['id'];
-                        $_SESSION['user_type'] = $user['user_type'];
-                        // $_SESSION['last_activity'] is already set by secureSession() and updated by checkSessionTimeout()
-                        
-                        // Redirect user based on user type.
-                        if ($user['user_type'] == 'admin') {
-                            header("Location: admin/");
-                            exit;
-                        } else {
-                            header("Location: voter/");
-                            exit;
+        if (empty($username) || empty($password)) {
+            $error = "Please enter both username and password.";
+        } else {
+            $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            if (!$securityManager->checkLoginRateLimit($ipAddress)) {
+                $error = "Too many failed login attempts. Please try again later.";
+            } else {
+                try {
+                    $stmt = $pdo->prepare("SELECT id, username, pass_hash, user_type, is_active FROM users WHERE username = :username LIMIT 1");
+                    $stmt->execute(['username' => $username]);
+                    $user = $stmt->fetch();
+                    
+                    if ($user && $user['is_active']) {
+                        if ($securityManager->verifyPassword($password, $user['pass_hash'], $user['id'])) {
+                            $securityManager->resetLoginRateLimit($ipAddress);
+                            
+                            $securityManager->regenerateSession();
+                            
+                            $_SESSION['loggedin'] = true;
+                            $_SESSION['username'] = $user['username'];
+                            $_SESSION['user_id'] = $user['id'];
+                            $_SESSION['user_type'] = $user['user_type'];
+                            
+                            if ($user['user_type'] == 'admin') {
+                                header("Location: admin/");
+                                exit;
+                            } else {
+                                header("Location: voter/");
+                                exit;
+                            }
                         }
                     }
+                    $error = "Invalid username or password.";
+                } catch (PDOException $e) {
+                    error_log("Login error: " . $e->getMessage());
+                    $error = "An error occurred during login. Please try again.";
                 }
-                // Kung invalid credentials or inactive user.
-                $error = "Invalid username or password.";
-            } catch (PDOException $e) {
-                // Catch any database errors.
-                $error = "Database error: " . $e->getMessage();
             }
-        } else {
-            // Kung may kulang sa username o password.
-            $error = "Please enter both username and password.";
         }
     }
 }

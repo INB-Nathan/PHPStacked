@@ -114,18 +114,7 @@ render_page:
     <script src="../js/logout.js" defer></script>
 </head>
 <body>
-    <?php adminHeader('elections'); ?>
-
-    <div id="logoutModal">
-        <div id="logoutModalContent">
-            <h3>Are you sure you want to log out?</h3>
-            <form action="../logout.php" method="post" style="display:inline;">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                <button type="submit" class="modal-btn confirm">Continue</button>
-            </form>
-            <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
-        </div>
-    </div>
+    <?php adminHeader('election', $csrf_token); ?>
 
     <?php if (isset($csrf_error)): ?>
     <div class="alert alert-danger" style="background-color: #f8d7da; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 5px; text-align: center; max-width: 800px; margin-left: auto; margin-right: auto;">
@@ -251,21 +240,6 @@ render_page:
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            
-            if (typeof logoutNavBtnClickHandler === 'undefined') {
-                document.getElementById('logoutNavBtn').onclick = e => {
-                    e.preventDefault();
-                    document.getElementById('logoutModal').classList.add('active');
-                };
-                document.getElementById('cancelLogoutBtn').onclick = () => {
-                    document.getElementById('logoutModal').classList.remove('active');
-                };
-                document.getElementById('logoutModal').onclick = e => {
-                    if (e.target === e.currentTarget) {
-                        document.getElementById('logoutModal').classList.remove('active');
-                    }
-                };
-            }
         });
     </script>
 </body>

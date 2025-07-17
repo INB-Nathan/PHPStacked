@@ -1,20 +1,24 @@
 <?php
 require_once '../includes/autoload.php';
+require_once '../includes/voter_header.php';
 session_start();
 
+// Include security checks
 $securityManager = new SecurityManager($pdo);
 $securityManager->secureSession();
 $securityManager->checkSessionTimeout('../login.php');
+$csrf_token = $securityManager->generateCSRFToken();
 
+// Ensure the user is logged in and is a voter
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'voter') {
-    http_response_code(403);
-    echo "<div style='color:red;'>Access denied. Only voters can access this page.</div>";
+    header("Location: ../login.php");
     exit;
 }
 
+// Get the current user's ID
 $userId = $_SESSION['user_id'] ?? 0;
 if (!$userId) {
-    echo "<div style='color:red;'>User ID not found in session.</div>";
+    header("Location: ../login.php?msg=invalid_session");
     exit;
 }
 
@@ -23,13 +27,13 @@ $voteManager = new VoteManager($pdo);
 $electionId = isset($_GET['election_id']) ? (int)$_GET['election_id'] : 0;
 
 if (!$electionId) {
-    header("Location: all_elections.php");
+    header("Location: available_elections.php");
     exit;
 }
 
 if ($voteManager->hasUserVoted($userId, $electionId)) {
     echo "<div style='color:red;'>You have already voted in this election.</div>";
-    header("Refresh: 3; URL=all_elections.php");
+    header("Refresh: 3; URL=available_elections.php");
     exit;
 }
 
@@ -60,9 +64,13 @@ $pageTitle = "Vote by Party - " . ($election['title'] ?? 'Election');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token); ?>">
     <title><?= htmlspecialchars($pageTitle) ?></title>
-    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/admin_header.css">
+    <link rel="stylesheet" href="../css/admin_index.css">
+    <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="../css/voter.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         .party-list {
             display: grid;
@@ -199,18 +207,38 @@ $pageTitle = "Vote by Party - " . ($election['title'] ?? 'Election');
             background-color: #f1f1f1;
             border-radius: 4px;
         }
+
+        .election-info {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 5px solid #4CAF50;
+        }
+        
+        .election-info h2 {
+            margin-top: 0;
+            color: #333;
+        }
     </style>
 </head>
 <body>
+    <?php voterHeader('elections'); ?>
+    
+    <!-- Logout Modal -->
+    <div id="logoutModal" class="logout-modal">
+        <div class="logout-modal-content">
+            <h3>Are you sure you want to log out?</h3>
+            <form action="../logout.php" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                <button type="submit" class="modal-btn confirm">Continue</button>
+            </form>
+            <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
+        </div>
+    </div>
+    
     <div class="container">
-        <header>
-            <h1><?= htmlspecialchars($pageTitle) ?></h1>
-            <nav>
-                <a href="index.php">Dashboard</a> |
-                <a href="all_elections.php">All Elections</a> |
-                <a href="../logout.php">Logout</a>
-            </nav>
-        </header>
+        <h1><?= htmlspecialchars($pageTitle) ?></h1>
         
         <?php if (!empty($message)): ?>
             <div class="message error">
@@ -258,6 +286,7 @@ $pageTitle = "Vote by Party - " . ($election['title'] ?? 'Election');
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+        </div>
         
         <div id="candidatesModal" class="modal">
             <div class="modal-content">
@@ -271,10 +300,11 @@ $pageTitle = "Vote by Party - " . ($election['title'] ?? 'Election');
         
         <footer>
             <p><a href="vote.php?election_id=<?= $electionId ?>">Switch to Individual Candidate Voting</a></p>
-            <p><a href="all_elections.php">Back to Elections</a></p>
+            <p><a href="available_elections.php">Back to Elections</a></p>
         </footer>
     </div>
     
+    <script src="../js/logout.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('candidatesModal');

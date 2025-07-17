@@ -1,64 +1,84 @@
 <?php
 class SecurityManager {
     private $pdo;
-    private $sessionTimeout = 15;
+    private $sessionTimeout;
+    private $config;
 
-    public function __construct(PDO $pdo, $timeoutMinutes = 15) {
+    public function __construct(PDO $pdo, $timeoutMinutes = null) {
         $this->pdo = $pdo;
-        $this->sessionTimeout = $timeoutMinutes;
-    }
-    /*
-    generatecsrftoken is para sa security function natin, bali copy paste lang to sa boiler plate in github pero nag change ako ng kaonting logic.
-    basically csrf is cross-site request forgery, attack siya na kapag unauthorized command is transmitted from a user that web application trusts.
-    by using a token na stored sa website ng user, ung system natin pwede iverify if ung form submissions orignate from legitimate user sessions and not machines.
-    */
-    public function generateCSRFToken() {
-        // checheck muna if naka define na si csrf_token, but ung if statement na to ichecheck if null siya, if null siya gagawa siya ng csrf_token based from random_bytes.
-        if (!isset($_SESSION['csrf_token'])) {
-            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        
+        // Load configuration
+        $this->config = require __DIR__ . '/config.php';
+        
+        // Set session timeout from config or parameter
+        $this->sessionTimeout = $timeoutMinutes ?? $this->config['session']['timeout_minutes'];
+        
+        // Include the SecurityHelper class if not already included
+        if (!class_exists('SecurityHelper')) {
+            require_once __DIR__ . '/security_helper.php';
         }
-        // pero if di siya na detect na null siya, return na ung value ni csrf_token na based sa $_session array.
+    }
+    
+    /**
+     * Generate CSRF token for form protection
+     * 
+     * @return string The CSRF token
+     */
+    public function generateCSRFToken() {
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = SecurityHelper::generateToken(
+                $this->config['csrf']['token_length']
+            );
+        }
         return $_SESSION['csrf_token'];
     }
     
-    /*
-    validatecsrftoken generally ginagawa nya lang is self explanatory, chinecheck niya lang ung csrftoken and mag rereturn siya ng boolean
-    if true ibigsabihin neto nag matmatch ung tokens ng action and ng user.
-    first conditional checks if ung csrf_token is set, if wala and ung statement nya is && false agad ung kakalabasan nya
-    then the second is ung hash_equals, bali ginagawa neto icocompare niya lang ung user string sa form submission sa known string sa session array.
-    */
+    /**
+     * Validate CSRF token from form submission
+     * 
+     * @param string $token The token to validate
+     * @return bool True if the token is valid
+     */
     public function validateCSRFToken($token) {
-        return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+        return isset($_SESSION['csrf_token']) && SecurityHelper::timingSafeEquals($_SESSION['csrf_token'], $token);
     }
 
-    /*
-    secure session is just for configuring session security parameters para iprevent ung session vulnerabilities.
-    */
+    /**
+     * Configure secure session settings
+     */
     public function secureSession() {
-        // php will not accept an uninitialized session id.
-        ini_set('session.use_strict_mode', 1);
-        // forces php to only use cookies for storing the session id, para bawal ung session ids passed in urls.
-        ini_set('session.use_only_cookies', 1);
-        // session cookie dapat http only lang, this stops xss exploits na kukunin ung session cookie and gamitin nila for untracable acts!
-        ini_set('session.cookie_httponly', 1);
+        // PHP will not accept an uninitialized session id
+        ini_set('session.use_strict_mode', $this->config['session']['strict_mode'] ? 1 : 0);
         
-        // wat dis do is if ung server connection is https and naka on ung https value gagawin nya is ung session cookie is only sent through secure https channels.
-        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+        // Force PHP to only use cookies for storing the session id
+        ini_set('session.use_only_cookies', 1);
+        
+        // Session cookie should be HTTP only
+        ini_set('session.cookie_httponly', $this->config['session']['http_only'] ? 1 : 0);
+        
+        // Set SameSite attribute
+        ini_set('session.cookie_samesite', $this->config['session']['same_site']);
+        
+        // Set secure flag for HTTPS connections
+        if ($this->config['session']['secure_cookies'] && 
+            (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')) {
             ini_set('session.cookie_secure', 1);
         }
         
-        // tracks the last activity time with current timestamp.
+        // Track last activity time
         $_SESSION['last_activity'] = time();
         
-        // ensures na nireregen ung session para di masession hijack.
+        // Regenerate session if needed
         if (!isset($_SESSION['last_regeneration'])) {
             $this->regenerateSession();
-        } else if (time() - $_SESSION['last_regeneration'] > 1800) {
+        } else if (time() - $_SESSION['last_regeneration'] > $this->config['session']['regenerate_interval']) {
             $this->regenerateSession();
         }
     }
     
-    // regenerate session ginagawa is papaltan nya ng bagong sessiond data ung $_session array if called
+    /**
+     * Regenerate session ID to prevent session fixation
+     */
     public function regenerateSession() {
         $old_session_data = $_SESSION;
         
@@ -68,7 +88,12 @@ class SecurityManager {
         $_SESSION['last_regeneration'] = time();
     }
 
-    // basically just checks if need na isession timeout dahil sa inactivity.
+    /**
+     * Check for session timeout due to inactivity
+     * 
+     * @param string $redirectUrl URL to redirect to on timeout
+     * @return bool True if session timed out
+     */
     public function checkSessionTimeout($redirectUrl = '../login.php') {
         if (!isset($_SESSION['user_id']) && !isset($_SESSION['loggedin'])) {
             return false;
@@ -95,5 +120,51 @@ class SecurityManager {
         
         return false;
     }
+    
+    /**
+     * Verify a password against a hash and handle rehashing if needed
+     * 
+     * @param string $password The plain text password
+     * @param string $hash The password hash
+     * @param int $userId User ID for rehashing
+     * @return bool True if password is valid
+     */
+    public function verifyPassword($password, $hash, $userId = null) {
+        $valid = SecurityHelper::verifyPassword($password, $hash);
+        
+        // If password is valid and needs rehashing, update it
+        if ($valid && $userId && SecurityHelper::passwordNeedsRehash($hash)) {
+            $newHash = SecurityHelper::hashPassword($password);
+            
+            try {
+                $stmt = $this->pdo->prepare("UPDATE users SET pass_hash = ? WHERE id = ?");
+                $stmt->execute([$newHash, $userId]);
+            } catch (PDOException $e) {
+                error_log("Failed to update password hash: " . $e->getMessage());
+            }
+        }
+        
+        return $valid;
+    }
+    
+    /**
+     * Check rate limiting for login attempts
+     * 
+     * @param string $identifier Username or IP address
+     * @return bool True if not rate limited
+     */
+    public function checkLoginRateLimit($identifier) {
+        return SecurityHelper::checkRateLimit($identifier, 'login');
+    }
+    
+    /**
+     * Reset login rate limit for a user
+     * 
+     * @param string $identifier Username or IP address
+     */
+    public function resetLoginRateLimit($identifier) {
+        SecurityHelper::resetRateLimit($identifier, 'login');
+    }
 }
+?>
 ?>

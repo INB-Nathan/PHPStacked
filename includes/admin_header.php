@@ -1,5 +1,11 @@
 <?php
-function adminHeader($active = '') {
+/**
+ * Outputs the admin header with navigation and logout modal
+ * 
+ * @param string $active The currently active navigation item
+ * @param string $csrf_token The CSRF token for form submissions
+ */
+function adminHeader($active = '', $csrf_token = '') {
 ?>
 <header class="admin-header">
   <nav class="admin-nav">
@@ -36,6 +42,18 @@ function adminHeader($active = '') {
     </div>
   </nav>
 </header>
+
+<!-- Logout Modal -->
+<div id="logoutModal">
+  <div id="logoutModalContent">
+    <h3>Are you sure you want to log out?</h3>
+    <form action="../logout.php" method="post" style="display:inline;">
+      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+      <button type="submit" class="modal-btn confirm">Continue</button>
+    </form>
+    <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
+  </div>
+</div>
 <?php
 }
 ?>

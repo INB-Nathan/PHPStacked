@@ -8,11 +8,11 @@ function voterHeader($active = '')
                 <li class="<?php echo $active == 'dashboard' ? 'active' : ''; ?>">
                     <a href="index.php">Dashboard</a>
                 </li>
-                <li class="<?php echo $active == 'view_election' ? 'active' : ''; ?>">
-                    <a href="view_election.php">View Election</a>
+                <li class="<?php echo $active == 'elections' ? 'active' : ''; ?>">
+                    <a href="available_elections.php">Available Elections</a>
                 </li>
-                <li class="<?php echo $active == 'vote' ? 'active' : ''; ?>">
-                    <a href="vote.php">Vote</a>
+                <li class="<?php echo $active == 'results' ? 'active' : ''; ?>">
+                    <a href="election_results.php">Election Results</a>
                 </li>
             </ul>
             <div class="nav-logout">
