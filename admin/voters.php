@@ -78,29 +78,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_voter'])) {
         $message = 'Security validation failed. Please try again.';
         $messageType = 'error';
     } else {
-        $name = ucwords(trim($_POST['name'] ?? ''));
-        $username = trim($_POST['username'] ?? '');
-        $email = trim($_POST['email'] ?? '');
+        $name = $_POST['name'] ?? '';
+        $username = $_POST['username'] ?? '';
+        $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
         $selected_elections = $_POST['voter_elections'] ?? [];
 
-        // Use the addUser method to handle validation and insertion
-        $result = $userManager->addUser($username, $email, $password, $name, 'voter', true);
-        
-        if ($result === true) {
-            // If successfully added, get the new voter's ID
-            $new_voter_id = $userManager->getLastInsertId();
-            
-            // Assign selected elections to the voter
-            if (!empty($selected_elections)) {
-                $userManager->updateVoterElections($new_voter_id, $selected_elections);
-            }
-            
-            $message = "New voter added successfully.";
-            $messageType = "success";
-        } else {
-            $message = $result;
+        // Validate inputs using InputValidator
+        $nameValidation = InputValidator::validateName($name);
+        $usernameValidation = InputValidator::validateUsername($username);
+        $emailValidation = InputValidator::validateEmail($email);
+        $passwordValidation = InputValidator::validatePassword($password);
+
+        if (!$nameValidation['valid']) {
+            $message = $nameValidation['message'];
             $messageType = "error";
+        } elseif (!$usernameValidation['valid']) {
+            $message = $usernameValidation['message'];
+            $messageType = "error";
+        } elseif (!$emailValidation['valid']) {
+            $message = $emailValidation['message'];
+            $messageType = "error";
+        } elseif (!$passwordValidation['valid']) {
+            $message = $passwordValidation['message'];
+            $messageType = "error";
+        } else {
+            // Sanitize inputs
+            $name = ucwords(InputValidator::sanitizeString($name));
+            $username = InputValidator::sanitizeString($username);
+            $email = InputValidator::sanitizeString($email);
+
+            // Use the addUser method to handle validation and insertion
+            $result = $userManager->addUser($username, $email, $password, $name, 'voter', true);
+            
+            if ($result === true) {
+                // If successfully added, get the new voter's ID
+                $new_voter_id = $userManager->getLastInsertId();
+                
+                // Assign selected elections to the voter
+                if (!empty($selected_elections)) {
+                    $userManager->updateVoterElections($new_voter_id, $selected_elections);
+                }
+                
+                $message = "New voter added successfully.";
+                $messageType = "success";
+            } else {
+                $message = $result;
+                $messageType = "error";
+            }
         }
     }
 }

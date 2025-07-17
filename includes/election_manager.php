@@ -86,41 +86,99 @@ class ElectionManager {
         }
     }
 
-    /**
-     * Fetches candidates and their vote counts for a specific election.
-     *
-     * @param int $electionId The ID of the election.
-     * @return array An array of candidate data, including their vote counts.
-     */
     public function getCandidatesWithVotes(int $electionId): array {
         $sql = "
             SELECT
                 c.id,
                 c.name,
-                c.description,
+                c.bio AS description,
                 c.photo,
                 c.vote_count,
-                p.position_name,
-                pa.name AS party_name
+                COALESCE(p.position_name, 'General Candidate') AS position_name,
+                COALESCE(pa.name, 'Independent') AS party_name
             FROM
                 candidates c
-            JOIN
+            LEFT JOIN
                 positions p ON c.position_id = p.id
             LEFT JOIN
                 parties pa ON c.party_id = pa.id
             WHERE
                 c.election_id = :election_id
             ORDER BY
-                p.position_name ASC, c.name ASC;
+                COALESCE(p.position_name, 'General Candidate') ASC, c.name ASC;
         ";
         try {
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute(['election_id' => $electionId]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Log for debugging
+            if (empty($results)) {
+                error_log("getCandidatesWithVotes: No candidates found for election ID $electionId");
+                
+                // Do a secondary check to see if candidates exist at all
+                $checkStmt = $this->pdo->prepare("SELECT COUNT(*) FROM candidates WHERE election_id = :eid");
+                $checkStmt->execute(['eid' => $electionId]);
+                $count = $checkStmt->fetchColumn();
+                
+                if ($count > 0) {
+                    error_log("But found $count candidates in the candidates table for this election");
+                }
+            }
+            
+            return $results;
         } catch (PDOException $e) {
             error_log("Error in getCandidatesWithVotes: " . $e->getMessage());
             return [];
         }
     }
+
+    public function updateElectionStatuses(): int {
+        try {
+            $now = new DateTime();
+            $currentDate = $now->format('Y-m-d H:i:s');
+            
+            $this->pdo->beginTransaction();
+            
+            $activateStmt = $this->pdo->prepare("UPDATE elections SET status = 'active' WHERE start_date <= :current_time AND end_date > :current_time AND status != 'active'");
+            $activateStmt->execute(['current_time' => $currentDate]);
+            $activatedCount = $activateStmt->rowCount();
+            
+            $completeStmt = $this->pdo->prepare("
+                UPDATE elections 
+                SET status = 'completed' 
+                WHERE end_date <= :current_time 
+                AND status != 'completed'
+            ");
+            $completeStmt->execute(['current_time' => $currentDate]);
+            $completedCount = $completeStmt->rowCount();
+            
+            $upcomingStmt = $this->pdo->prepare("
+                UPDATE elections 
+                SET status = 'upcoming' 
+                WHERE start_date > :current_time 
+                AND status != 'upcoming'
+                AND status != 'cancelled'
+            ");
+            $upcomingStmt->execute(['current_time' => $currentDate]);
+            $upcomingCount = $upcomingStmt->rowCount();
+            
+            $this->pdo->commit();
+            
+            return $activatedCount + $completedCount + $upcomingCount;
+            
+        } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('Error updating election statuses: ' . $e->getMessage());
+            return 0;
+        } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('General error updating election statuses: ' . $e->getMessage());
+            return 0;
+        }
+    }
 }
-?>

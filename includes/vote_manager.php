@@ -28,12 +28,11 @@ class VoteManager {
         try{
             $now = date("Y-m-d H:i:s");
             $upcoming = date("Y-m-d H:i:s", strtotime("+24 hours"));
-            // select mo election id, title, description, start, end, status and max vote per user.
-            // then may calculated field na display_status which will check if ung start date ng election is still in the future by comparing sa current time
-            // if so it labels the election as upcoming, otherwise it labels it as active.
-            $stmt = $this->pdo->prepare("SELECT e.id, e.title, e.description, e.start_date, e.end_date, e.status, e.max_votes_per_user, CASE WHEN e.start_date > NOW() THEN 'upcoming' ELSE 'active' END AS display_status FROM elections e INNER JOIN voter_elections ve ON e.id = ve.election_id WHERE ve.voter_id = ? AND ((e.status = 'active' AND e.start_date <= ? AND e.end_date >= ?) OR (e.status = 'active' AND e.start_date > ? AND e.start_date <=?)) ORDER BY e.start_date ASC");
-            $stmt->execute([$userId, $now, $now, $now, $upcoming]);
-            $elections = $stmt -> fetchAll(pdo::FETCH_ASSOC);
+            
+            // Updated query to include all elections (active, upcoming, and completed)
+            $stmt = $this->pdo->prepare("SELECT e.id, e.title, e.description, e.start_date, e.end_date, e.status, e.max_votes_per_user,  CASE WHEN e.end_date < NOW() THEN 'completed' WHEN e.start_date > NOW() THEN 'upcoming' ELSE 'active' END AS display_status FROM elections e INNER JOIN voter_elections ve ON e.id = ve.election_id WHERE ve.voter_id = ? AND ((e.status = 'active' AND e.start_date <= ? AND e.end_date >= ?) OR (e.status = 'active' AND e.start_date > ? AND e.start_date <= ?) OR (e.status = 'completed' OR (e.status = 'active' AND e.end_date < ?))) ORDER BY CASE WHEN e.end_date >= ? THEN 0 ELSE 1 END, e.start_date ASC");
+            $stmt->execute([$userId, $now, $now, $now, $upcoming, $now, $now]);
+            $elections = $stmt -> fetchAll(PDO::FETCH_ASSOC);
             
             // foreach loop para iprocess each election sa array.
             // checks muna kung ung user has voted in a specific election by using hasUserVoted.
@@ -343,7 +342,7 @@ class VoteManager {
     // returns election ID, timestamp, and the generated receipt code or false if no vote record exists
     public function getVoterReceipt(int $userId, int $electionId) {
         try {
-            $stmt = $this->pdo->prepare("SELECT timestamp FROM votes WHERE user_id = ? AND election_id = ? LIMIT 1");
+            $stmt = $this->pdo->prepare("SELECT vote_timestamp FROM votes WHERE user_id = ? AND election_id = ? LIMIT 1");
             $stmt->execute([$userId, $electionId]);
             $vote = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -353,8 +352,8 @@ class VoteManager {
             
             return [
                 'election_id' => $electionId,
-                'timestamp' => $vote['timestamp'],
-                'receipt_code' => $this->generateReceiptCode($userId, $electionId, $vote['timestamp'])
+                'timestamp' => $vote['vote_timestamp'],
+                'receipt_code' => $this->generateReceiptCode($userId, $electionId, $vote['vote_timestamp'])
             ];
         } catch (PDOException $e) {
             error_log("Error getting voter receipt: " . $e->getMessage());
@@ -377,4 +376,3 @@ class VoteManager {
     }
 
 }
-?>

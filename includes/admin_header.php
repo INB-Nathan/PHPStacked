@@ -1,10 +1,4 @@
 <?php
-/**
- * Outputs the admin header with navigation and logout modal
- * 
- * @param string $active The currently active navigation item
- * @param string $csrf_token The CSRF token for form submissions
- */
 function adminHeader($active = '', $csrf_token = '') {
 ?>
 <header class="admin-header">

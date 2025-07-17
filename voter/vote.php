@@ -25,8 +25,8 @@ if (!$userId) {
 // Create an instance of VoteManager
 $voteManager = new VoteManager($pdo);
 
-// Get the election ID from the query string
-$electionId = isset($_GET['election_id']) ? (int)$_GET['election_id'] : 0;
+// Get the election ID from the query string and validate it
+$electionId = InputValidator::validateId($_GET['election_id'] ?? '');
 
 // Check if the election ID is valid
 if (!$electionId) {
@@ -53,29 +53,42 @@ if (!$election) {
 }
 
 // Check if the election is active
-$now = date('Y-m-d H:i:s');
+$currentTimestamp = time();
 
-// Convert all dates to timestamps for reliable comparison
-$nowTimestamp = strtotime($now);
+// Parse election dates
 $startTimestamp = strtotime($election['start_date']);
 $endTimestamp = strtotime($election['end_date']);
 
-// Better date comparison using timestamps
-if ($election['status'] !== 'active' || $nowTimestamp < $startTimestamp || $nowTimestamp > $endTimestamp) {
-    // For debugging
+// Handle parsing failures
+if ($startTimestamp === false) {
+    $startTimestamp = 0;
+}
+if ($endTimestamp === false) {
+    $endTimestamp = PHP_INT_MAX;
+}
+
+// Election is active if:
+// 1. Status is 'active' AND
+// 2. Current time is between start and end dates (inclusive)
+$statusActive = ($election['status'] === 'active');
+$timeInRange = ($currentTimestamp >= $startTimestamp && $currentTimestamp <= $endTimestamp);
+
+if (!$statusActive || !$timeInRange) {
     $reason = '';
-    if ($election['status'] !== 'active') {
+    if (!$statusActive) {
         $reason = "Election status is '{$election['status']}', not 'active'";
-    } elseif ($nowTimestamp < $startTimestamp) {
-        $reason = "Election hasn't started yet (starts: " . date('Y-m-d H:i:s', $startTimestamp) . ")";
-    } elseif ($nowTimestamp > $endTimestamp) {
-        $reason = "Election already ended (ended: " . date('Y-m-d H:i:s', $endTimestamp) . ")";
+    } elseif ($currentTimestamp < $startTimestamp) {
+        $reason = "Election hasn't started yet. It will begin on " . date('F j, Y \a\t g:i A', $startTimestamp) . ".";
+    } elseif ($currentTimestamp > $endTimestamp) {
+        $reason = "Election has ended. It concluded on " . date('F j, Y \a\t g:i A', $endTimestamp) . ".";
     }
     
-    echo "<div style='color:red;'>This election is not currently active.</div>";
-    echo "<div style='color:#666;font-size:0.9em;margin-top:10px;'>Reason: $reason</div>";
-    echo "<div style='color:#666;font-size:0.9em;margin-top:5px;'>Current time: $now</div>";
-    header("Refresh: 5; URL=available_elections.php"); // Increased refresh time to see the debug info
+    echo "<div style='color:red; padding: 20px; margin: 20px 0; border-radius: 5px; background-color: #ffe6e6; border: 1px solid #ff9999;'>";
+    echo "<h3 style='margin-top: 0;'>This election is not currently available for voting.</h3>";
+    echo "<p><strong>Reason:</strong> $reason</p>";
+    echo "<p><strong>Current time:</strong> " . date('F j, Y \a\t g:i A', $currentTimestamp) . "</p>";
+    echo "<p style='margin-bottom: 0;'><a href='available_elections.php'>← Back to Available Elections</a></p>";
+    echo "</div>";
     exit;
 }
 
@@ -92,12 +105,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vote'])) {
     if (empty($selectedCandidates)) {
         $message = "Please select at least one candidate to vote for.";
     } else {
-        // Convert to integers and validate each candidate ID
+        // Validate each candidate ID using InputValidator
         $validCandidateIds = [];
         $positionsVoted = [];
         
         foreach ($selectedCandidates as $candidateId) {
-            $candidateId = (int)$candidateId;
+            $candidateId = InputValidator::validateId($candidateId);
+            
+            if (!$candidateId) {
+                $message = "Invalid candidate selection.";
+                break;
+            }
             
             // Find the candidate in our data
             foreach ($candidates as $position) {
@@ -151,190 +169,9 @@ $csrf_token = $securityManager->generateCSRFToken();
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/voter.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
+    <link rel="stylesheet" href="../css/vote.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="../js/logout.js" defer></script>
-    <style>
-        .election-info {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            border-left: 5px solid #4CAF50;
-        }
-        
-        .election-info h2 {
-            margin-top: 0;
-            color: #333;
-        }
-        
-        .positions-container {
-            margin-bottom: 30px;
-        }
-        
-        .position-section {
-            margin-bottom: 40px;
-            padding: 20px;
-            background-color: #f5f5f5;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .position-section h3 {
-            margin-top: 0;
-            color: #333;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .candidates-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        
-        .candidate-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            background-color: #fff;
-            position: relative;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .candidate-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .candidate-card.selected {
-            border-color: #4CAF50;
-            background-color: #f0fff0;
-        }
-        
-        .candidate-card h4 {
-            margin-top: 0;
-            color: #333;
-        }
-        
-        .candidate-card .party-name {
-            color: #666;
-            font-style: italic;
-            margin-bottom: 10px;
-        }
-        
-        .candidate-card .bio {
-            color: #555;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-        
-        .candidate-selection {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-        }
-        
-        .candidate-selection input {
-            transform: scale(1.5);
-            cursor: pointer;
-        }
-        
-        .candidate-photo {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 50%;
-            margin-bottom: 10px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .vote-actions {
-            text-align: center;
-            margin-top: 30px;
-            margin-bottom: 30px;
-        }
-        
-        .submit-vote-btn {
-            padding: 12px 30px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        
-        .submit-vote-btn:hover {
-            background-color: #45a049;
-        }
-        
-        .message {
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-        }
-        
-        .error {
-            background-color: #ffebee;
-            color: #c62828;
-            border-left: 5px solid #c62828;
-        }
-        
-        .note {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-        }
-        
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #2196F3;
-            text-decoration: none;
-        }
-        
-        .back-link:hover {
-            text-decoration: underline;
-        }
-        
-        /* Logout Modal Styles */
-        .logout-modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .logout-modal.active {
-            display: flex;
-        }
-        
-        .logout-modal-content {
-            background-color: #fff;
-            padding: 24px 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-    </style>
 </head>
 <body>
     <?php require_once '../includes/voter_header.php'; ?>

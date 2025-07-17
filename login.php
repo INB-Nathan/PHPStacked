@@ -19,18 +19,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!$securityManager->validateCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = "Security validation failed. Please try again.";
     } else {
-        $username = isset($_POST['username']) ? InputValidator::sanitizeString($_POST['username']) : '';
+        $username = $_POST['username'] ?? '';
         $password = $_POST['password'] ?? '';
         
-        if (empty($username) || empty($password)) {
-            $error = "Please enter both username and password.";
+        $usernameValidation = InputValidator::validateUsername($username);
+        if (!$usernameValidation['valid']) {
+            $error = $usernameValidation['message'];
+        } elseif (empty($password)) {
+            $error = "Password is required.";
         } else {
+            $username = InputValidator::sanitizeString($username);
             $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
             if (!$securityManager->checkLoginRateLimit($ipAddress)) {
                 $error = "Too many failed login attempts. Please try again later.";
             } else {
                 try {
-                    $stmt = $pdo->prepare("SELECT id, username, pass_hash, user_type, is_active FROM users WHERE username = :username LIMIT 1");
+                    $stmt = $pdo->prepare("SELECT id, username, pass_hash, user_type, is_active, full_name FROM users WHERE username = :username LIMIT 1");
                     $stmt->execute(['username' => $username]);
                     $user = $stmt->fetch();
                     
@@ -40,10 +44,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             
                             $securityManager->regenerateSession();
                             
+                            $electionManager = new ElectionManager($pdo);
+                            $electionManager->updateElectionStatuses();
+                            
                             $_SESSION['loggedin'] = true;
                             $_SESSION['username'] = $user['username'];
                             $_SESSION['user_id'] = $user['id'];
                             $_SESSION['user_type'] = $user['user_type'];
+                            $_SESSION['full_name'] = $user['full_name'];
                             
                             if ($user['user_type'] == 'admin') {
                                 header("Location: admin/");

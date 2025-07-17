@@ -10,14 +10,19 @@ class PositionManager {
     }
     
     public function getAll($election_id = null): array {
-        if ($election_id) {
-            $stmt = $this->pdo->prepare("SELECT * FROM positions WHERE election_id = ? ORDER BY position_name ASC");
-            $stmt->execute([$election_id]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } else {
-            return $this->pdo
-                ->query("SELECT * FROM positions ORDER BY position_name ASC")
-                ->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            if ($election_id) {
+                $stmt = $this->pdo->prepare("SELECT * FROM positions WHERE election_id = ? ORDER BY position_name ASC");
+                $stmt->execute([$election_id]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                return $this->pdo
+                    ->query("SELECT * FROM positions ORDER BY position_name ASC")
+                    ->fetchAll(PDO::FETCH_ASSOC);
+            }
+        } catch (PDOException $e) {
+            error_log('Error fetching positions: ' . $e->getMessage());
+            return [];
         }
     }
     
@@ -36,4 +41,3 @@ class PositionManager {
         return $stmt->execute([$id]);
     }
 }
-?>

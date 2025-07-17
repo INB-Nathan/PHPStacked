@@ -22,6 +22,7 @@ if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'voter') 
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/admin_header.css">
     <link rel="stylesheet" href="../css/admin_popup.css">
+    <link rel="stylesheet" href="../css/voter.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="../js/logout.js" defer></script>
 </head>
@@ -41,13 +42,17 @@ if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'voter') 
     <p>You are logged in as a voter.</p>
     <div class="dashboard-container">
         <ul class="dashboard-list">
-            <li onclick="location.href='view_election.php'">
-                <i class="fa-solid fa-chart-simple"></i>
-                <span>View Election</span>
+            <li>
+                <a href="election_results.php">
+                    <i class="fa-solid fa-chart-simple"></i>
+                    <span>View Election Results</span>
+                </a>
             </li>
-            <li onclick="location.href='vote.php'">
-                <i class="fa-solid fa-vote-yea"></i>
-                <span>Vote</span>
+            <li>
+                <a href="available_elections.php">
+                    <i class="fa-solid fa-vote-yea"></i>
+                    <span>Available Elections</span>
+                </a>
             </li>
         </ul>
     </div>

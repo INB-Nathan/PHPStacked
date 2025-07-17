@@ -10,14 +10,19 @@ class PartyManager {
     }
     
     public function getAll($election_id = null): array {
-        if ($election_id) {
-            $stmt = $this->pdo->prepare("SELECT * FROM parties WHERE election_id = ? OR election_id IS NULL ORDER BY name ASC");
-            $stmt->execute([$election_id]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } else {
-            return $this->pdo
-                ->query("SELECT * FROM parties ORDER BY name ASC")
-                ->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            if ($election_id) {
+                $stmt = $this->pdo->prepare("SELECT * FROM parties WHERE election_id = ? OR election_id IS NULL ORDER BY name ASC");
+                $stmt->execute([$election_id]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                return $this->pdo
+                    ->query("SELECT * FROM parties ORDER BY name ASC")
+                    ->fetchAll(PDO::FETCH_ASSOC);
+            }
+        } catch (PDOException $e) {
+            error_log('Error fetching parties: ' . $e->getMessage());
+            return [];
         }
     }
     
@@ -36,4 +41,3 @@ class PartyManager {
         return $stmt->execute([$id]);
     }
 }
-?>

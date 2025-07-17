@@ -40,13 +40,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // --- ADD PARTY ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_party'])) {
-    $party_name = trim($_POST['party_name'] ?? '');
-    $party_desc = trim($_POST['party_desc'] ?? '');
+    $party_name = $_POST['party_name'] ?? '';
+    $party_desc = $_POST['party_desc'] ?? '';
     $election_id = isset($_POST['party_election_id']) ? (int)$_POST['party_election_id'] : null;
     
-    if ($party_name === '' || empty($election_id)) {
+    // Validate inputs using InputValidator
+    $nameValidation = InputValidator::validateName($party_name);
+    
+    if (!$nameValidation['valid']) {
+        $addError = $nameValidation['message'];
+    } elseif (empty($election_id)) {
         $addError = 'Party name and election selection are required.';
     } else {
+        // Sanitize inputs
+        $party_name = InputValidator::sanitizeString($party_name);
+        $party_desc = InputValidator::sanitizeString($party_desc);
+        
         try {
             $partyManager->add($party_name, $party_desc, $election_id);
             $partyAddSuccess = 'Party added!';
@@ -61,14 +70,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_party'])) {
 // --- UPDATE PARTY ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_party'])) {
     $party_id = (int)($_POST['party_id'] ?? 0);
-    $party_name = trim($_POST['party_name'] ?? '');
-    $party_desc = trim($_POST['party_desc'] ?? '');
+    $party_name = $_POST['party_name'] ?? '';
+    $party_desc = $_POST['party_desc'] ?? '';
     $election_id = isset($_POST['party_election_id']) ? (int)$_POST['party_election_id'] : null;
     
-    if ($party_name === '' || empty($election_id)) {
+    // Validate inputs using InputValidator
+    $nameValidation = InputValidator::validateName($party_name);
+    
+    if (!$nameValidation['valid']) {
+        $partyEditError = $nameValidation['message'];
+        $editing_id = $party_id;
+    } elseif (empty($election_id)) {
         $partyEditError = 'Party name and election selection are required.';
         $editing_id = $party_id;
     } else {
+        // Sanitize inputs
+        $party_name = InputValidator::sanitizeString($party_name);
+        $party_desc = InputValidator::sanitizeString($party_desc);
+        
         try {
             $partyManager->update($party_id, $party_name, $party_desc, $election_id);
             $partyEditSuccess = 'Party updated!';
@@ -106,12 +125,20 @@ try {
 
 // --- ADD POSITION ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_position'])) {
-    $position_name = trim($_POST['position_name'] ?? '');
+    $position_name = $_POST['position_name'] ?? '';
     $election_id = isset($_POST['position_election_id']) ? (int)$_POST['position_election_id'] : null;
     
-    if ($position_name === '' || empty($election_id)) {
+    // Validate inputs using InputValidator
+    $nameValidation = InputValidator::validateName($position_name);
+    
+    if (!$nameValidation['valid']) {
+        $posAddError = $nameValidation['message'];
+    } elseif (empty($election_id)) {
         $posAddError = 'Position name and election selection are required.';
     } else {
+        // Sanitize inputs
+        $position_name = InputValidator::sanitizeString($position_name);
+        
         try {
             $positionManager->add($position_name, $election_id);
             $posAddSuccess = 'Position added!';
@@ -126,13 +153,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_position'])) {
 // --- UPDATE POSITION ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_position'])) {
     $position_id = (int)($_POST['position_id'] ?? 0);
-    $position_name = trim($_POST['position_name'] ?? '');
+    $position_name = $_POST['position_name'] ?? '';
     $election_id = isset($_POST['position_election_id']) ? (int)$_POST['position_election_id'] : null;
     
-    if ($position_name === '' || empty($election_id)) {
+    // Validate inputs using InputValidator
+    $nameValidation = InputValidator::validateName($position_name);
+    
+    if (!$nameValidation['valid']) {
+        $posEditError = $nameValidation['message'];
+        $pos_editing_id = $position_id;
+    } elseif (empty($election_id)) {
         $posEditError = 'Position name and election selection are required.';
         $pos_editing_id = $position_id;
     } else {
+        // Sanitize inputs
+        $position_name = InputValidator::sanitizeString($position_name);
+        
         try {
             $positionManager->update($position_id, $position_name, $election_id);
             $posEditSuccess = 'Position updated!';

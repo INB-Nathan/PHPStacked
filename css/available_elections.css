@@ -1,0 +1,167 @@
+.election-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.election-section {
+    margin-bottom: 40px;
+}
+
+.election-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.election-card h3 {
+    margin-top: 0;
+    color: #333;
+    font-size: 1.4rem;
+}
+
+.election-card p {
+    color: #666;
+    margin: 10px 0;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.status-active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.status-upcoming {
+    background-color: #2196F3;
+    color: white;
+}
+
+.status-completed {
+    background-color: #757575;
+    color: white;
+}
+
+.status-cancelled {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.election-ended-message {
+    margin-top: 10px;
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.date-info {
+    font-size: 0.9rem;
+    color: #777;
+    margin-bottom: 15px;
+}
+
+.vote-button, .view-results-button {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.vote-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.vote-button:hover {
+    background-color: #3e8e41;
+}
+
+.view-results-button {
+    background-color: #2196F3;
+    color: white;
+    margin-top: 10px;
+}
+
+.view-results-button:hover {
+    background-color: #0b7dda;
+}
+
+.voted-badge {
+    display: inline-block;
+    background-color: #757575;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.no-elections {
+    text-align: center;
+    padding: 40px 0;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+/* Logout Modal Styles */
+.logout-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.logout-modal.active {
+    display: flex;
+}
+
+.logout-modal-content {
+    background-color: #fff;
+    padding: 24px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+}
+
+.logout-modal-content h3 {
+    margin-top: 0;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    margin: 0 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.modal-btn.confirm {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.modal-btn.cancel {
+    background-color: #95a5a6;
+    color: white;
+}

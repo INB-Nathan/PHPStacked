@@ -21,6 +21,8 @@ if (!$userId) {
 $electionManager = new ElectionManager($pdo); // para ma-fetch ang candidate votes for each election
 $voteManager = new VoteManager($pdo); // VoteManager for voter-specific elections
 
+$electionManager->updateElectionStatuses();
+
 // Kunin lahat ng eligible elections para sa current voter
 $eligibleElections = $voteManager->getEligibleElections($userId);
 
@@ -51,38 +53,97 @@ foreach ($eligibleElections as $election) {
 </head>
 <body>
     <?php voterHeader('results'); ?>
-    <h1>View Completed Election Results</h1>
+    
+    <div class="container">
+        <h1 class="main-title"></i> Election Results</h1>
 
-    <?php if (!empty($completedElections)): // Kung may completed elections na na-assign sayo ?>
+        <?php if (!empty($completedElections)): // Kung may completed elections na na-assign sayo ?>
         <?php foreach ($completedElections as $election): // Loop through each completed election ?>
             <div class="election-card">
                 <h2><?php echo htmlspecialchars($election['title']); ?></h2>
                 <p><?php echo htmlspecialchars($election['description']); ?></p>
                 <p>Status: <span class="status-text <?php echo strtolower(htmlspecialchars($election['status'])); ?>"><?php echo htmlspecialchars($election['status']); ?></span> (Ends: <?php echo date('M d, Y H:i A', strtotime($election['end_date'])); ?>)</p>
 
-                <?php if (!empty($election['candidates'])): // Kung may candidates para sa election na 'to ?>
-                    <table class="party-table">
-                        <thead>
-                            <tr>
-                                <th>Candidate</th>
-                                <th>Votes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($election['candidates'] as $candidate): // Loop through each candidate ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($candidate['name']); ?></td>
-                                    <td><?php echo (int)$candidate['vote_count']; ?></td> </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                <?php if (isset($election['candidates']) && is_array($election['candidates']) && !empty($election['candidates'])): ?>
+                    <?php 
+                    // Group candidates by position
+                    $candidatesByPosition = [];
+                    foreach ($election['candidates'] as $candidate) {
+                        // Check if position_name exists, if not use a default
+                        $positionName = $candidate['position_name'] ?? 'General Candidate';
+                        if (!isset($candidatesByPosition[$positionName])) {
+                            $candidatesByPosition[$positionName] = [];
+                        }
+                        $candidatesByPosition[$positionName][] = $candidate;
+                    }
+                    
+                    // Find winner for each position
+                    foreach ($candidatesByPosition as $position => $candidates) {
+                        // Sort candidates by vote count in descending order
+                        usort($candidates, function($a, $b) {
+                            return $b['vote_count'] - $a['vote_count'];
+                        });
+                        $candidatesByPosition[$position] = $candidates;
+                    }
+                    ?>
+                    
+                    <div class="election-results">
+                        <?php foreach ($candidatesByPosition as $position => $candidates): ?>
+                            <div class="position-results">
+                                <h3 class="position-name"><?php echo htmlspecialchars($position); ?></h3>
+                                <table class="party-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Candidate</th>
+                                            <th>Party</th>
+                                            <th>Votes</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php 
+                                        $highestVotes = count($candidates) > 0 ? $candidates[0]['vote_count'] : 0;
+                                        $tiedWinners = false;
+                                        
+                                        // Check if there's a tie for first place
+                                        if (count($candidates) > 1 && $candidates[1]['vote_count'] == $highestVotes && $highestVotes > 0) {
+                                            $tiedWinners = true;
+                                        }
+                                        
+                                        foreach ($candidates as $index => $candidate): 
+                                            $isWinner = ($candidate['vote_count'] == $highestVotes && $highestVotes > 0);
+                                        ?>
+                                            <tr class="<?php echo $isWinner ? 'winner' : ''; ?>">
+                                                <td><?php echo htmlspecialchars($candidate['name']); ?></td>
+                                                <td><?php echo htmlspecialchars($candidate['party_name'] ?? 'Independent'); ?></td>
+                                                <td><?php echo (int)$candidate['vote_count']; ?></td>
+                                                <td>
+                                                    <?php if ($isWinner && !$tiedWinners): ?>
+                                                        <span class="winner-badge">Winner</span>
+                                                    <?php elseif ($isWinner && $tiedWinners): ?>
+                                                        <span class="tied-badge">Tied</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 <?php else: // Kung walang candidates found for this election ?>
                     <p class="no-candidates-message">No candidates found for this election.</p>
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>
     <?php else: // Kung walang completed elections assigned sa voter ?>
-        <p>No completed elections are available for viewing at this time. Completed elections will be shown here after they've ended.</p>
+        <div class="no-elections-message">
+            <i class="fas fa-info-circle"></i>
+            <h3>No Completed Elections Yet</h3>
+            <p>There are no completed elections available for viewing at this time.</p>
+            <p>Completed elections will be shown here after they've ended.</p>
+        </div>
     <?php endif; ?>
+    </div>
 </body>
 </html>

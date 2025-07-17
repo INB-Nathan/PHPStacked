@@ -24,7 +24,7 @@ if (!$userId) {
 
 $voteManager = new VoteManager($pdo);
 
-$electionId = isset($_GET['election_id']) ? (int)$_GET['election_id'] : 0;
+$electionId = InputValidator::validateId($_GET['election_id'] ?? '');
 
 if (!$electionId) {
     header("Location: available_elections.php");
@@ -65,162 +65,14 @@ $pageTitle = "Vote by Party - " . ($election['title'] ?? 'Election');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token); ?>">
-    <title><?= htmlspecialchars($pageTitle) ?></title>
+    <title><?= $pageTitle ?></title>
     <link rel="stylesheet" href="../css/admin_header.css">
     <link rel="stylesheet" href="../css/admin_index.css">
-    <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="../css/voter.css">
+    <link rel="stylesheet" href="../css/admin_popup.css">
+    <link rel="stylesheet" href="../css/party_vote.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        .party-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .party-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            transition: transform 0.2s;
-        }
-        
-        .party-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .party-card h3 {
-            margin-top: 0;
-            color: #333;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-        
-        .party-info {
-            margin-bottom: 15px;
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .party-stats {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            font-size: 13px;
-        }
-        
-        .party-action {
-            text-align: center;
-        }
-        
-        .view-candidates-btn {
-            display: inline-block;
-            padding: 8px 15px;
-            background-color: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 14px;
-            margin-bottom: 10px;
-            border: none;
-            cursor: pointer;
-        }
-        
-        .vote-party-btn {
-            display: inline-block;
-            padding: 8px 15px;
-            background-color: #2196F3;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-        }
-        
-        .message {
-            padding: 10px 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-        }
-        
-        .error {
-            background-color: #ffebee;
-            color: #c62828;
-            border-left: 5px solid #c62828;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 100;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-        
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 60%;
-            max-width: 800px;
-            border-radius: 8px;
-        }
-        
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        .close:hover {
-            color: black;
-        }
-        
-        .candidate-list {
-            margin-top: 20px;
-        }
-        
-        .position-section {
-            margin-bottom: 20px;
-        }
-        
-        .position-section h4 {
-            margin-top: 0;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
-        }
-        
-        .candidate-item {
-            padding: 10px;
-            margin: 5px 0;
-            background-color: #f1f1f1;
-            border-radius: 4px;
-        }
-
-        .election-info {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            border-left: 5px solid #4CAF50;
-        }
-        
-        .election-info h2 {
-            margin-top: 0;
-            color: #333;
-        }
-    </style>
+    <script src="../js/logout.js" defer></script>
 </head>
 <body>
     <?php voterHeader('elections'); ?>
@@ -246,19 +98,26 @@ $pageTitle = "Vote by Party - " . ($election['title'] ?? 'Election');
             </div>
         <?php endif; ?>
         
+        <div class="election-info">
+            <h2><?= htmlspecialchars($election['title'] ?? 'Election') ?></h2>
+            <p><?= htmlspecialchars($election['description'] ?? '') ?></p>
+            <p><strong>Start Date:</strong> <?= date('F j, Y, g:i a', strtotime($election['start_date'] ?? 'now')) ?></p>
+            <p><strong>End Date:</strong> <?= date('F j, Y, g:i a', strtotime($election['end_date'] ?? 'now')) ?></p>
+            <p class="note">Note: Voting for a party will automatically cast votes for all candidates from that party.</p>
+            
+            <?php if (!empty($parties)): ?>
+                <p class="note">
+                    <strong>Individual Voting:</strong> If you prefer to vote for individual candidates instead of by party, 
+                    <a href="vote.php?election_id=<?= $electionId ?>">click here</a>.
+                </p>
+            <?php endif; ?>
+        </div>
+        
         <?php if (empty($parties)): ?>
             <div class="message error">
                 No parties found for this election. Please use the <a href="vote.php?election_id=<?= $electionId ?>">regular voting</a> method.
             </div>
         <?php else: ?>
-            <div class="election-info">
-                <h2><?= htmlspecialchars($election['title'] ?? 'Election') ?></h2>
-                <p><?= htmlspecialchars($election['description'] ?? '') ?></p>
-                <p><strong>Start Date:</strong> <?= date('F j, Y, g:i a', strtotime($election['start_date'] ?? 'now')) ?></p>
-                <p><strong>End Date:</strong> <?= date('F j, Y, g:i a', strtotime($election['end_date'] ?? 'now')) ?></p>
-                <p class="note">Note: Voting for a party will automatically cast votes for all candidates from that party.</p>
-            </div>
-            
             <h2>Select a Party</h2>
             <div class="party-list">
                 <?php foreach ($parties as $party): ?>
@@ -286,7 +145,13 @@ $pageTitle = "Vote by Party - " . ($election['title'] ?? 'Election');
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="available_elections.php" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Available Elections
+            </a>
         </div>
+    </div>
         
         <div id="candidatesModal" class="modal">
             <div class="modal-content">
@@ -300,11 +165,9 @@ $pageTitle = "Vote by Party - " . ($election['title'] ?? 'Election');
         
         <footer>
             <p><a href="vote.php?election_id=<?= $electionId ?>">Switch to Individual Candidate Voting</a></p>
-            <p><a href="available_elections.php">Back to Elections</a></p>
         </footer>
     </div>
     
-    <script src="../js/logout.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('candidatesModal');

@@ -27,16 +27,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_election'])) {
-    $title = trim($_POST['title'] ?? '');
-    $description = trim($_POST['description'] ?? '');
+    $title = $_POST['title'] ?? '';
+    $description = $_POST['description'] ?? '';
     $start_date = $_POST['start_date'] ?? '';
     $end_date = $_POST['end_date'] ?? '';
     $status = $_POST['status'] ?? 'upcoming';
     $max_votes = (int)($_POST['max_votes_per_user'] ?? 1);
 
-    if ($title === '' || $start_date === '' || $end_date === '' || $max_votes < 1) {
-        $addError = 'All required fields must be filled out.';
+    // Validate inputs using InputValidator
+    $titleValidation = InputValidator::validateName($title);
+    $startDateValidation = InputValidator::validateDate($start_date);
+    $endDateValidation = InputValidator::validateDate($end_date);
+
+    if (!$titleValidation['valid']) {
+        $addError = $titleValidation['message'];
+    } elseif (!$startDateValidation['valid']) {
+        $addError = $startDateValidation['message'];
+    } elseif (!$endDateValidation['valid']) {
+        $addError = $endDateValidation['message'];
+    } elseif ($max_votes < 1) {
+        $addError = 'Maximum votes per user must be at least 1.';
     } else {
+        // Sanitize inputs
+        $title = InputValidator::sanitizeString($title);
+        $description = InputValidator::sanitizeString($description);
+        
         $data = compact('title', 'description', 'start_date', 'end_date', 'status', 'max_votes');
         $data['max_votes_per_user'] = $max_votes;
         $result = $electionManager->addElection($data);
@@ -46,17 +61,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_election'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_election'])) {
     $id = (int)$_POST['election_id'];
-    $title = trim($_POST['title'] ?? '');
-    $description = trim($_POST['description'] ?? '');
+    $title = $_POST['title'] ?? '';
+    $description = $_POST['description'] ?? '';
     $start_date = $_POST['start_date'] ?? '';
     $end_date = $_POST['end_date'] ?? '';
     $status = $_POST['status'] ?? 'upcoming';
     $max_votes = (int)($_POST['max_votes_per_user'] ?? 1);
 
-    if ($title === '' || $start_date === '' || $end_date === '' || $max_votes < 1) {
-        $editError = 'All required fields must be filled out.';
+    // Validate inputs using InputValidator
+    $titleValidation = InputValidator::validateName($title);
+    $startDateValidation = InputValidator::validateDate($start_date);
+    $endDateValidation = InputValidator::validateDate($end_date);
+
+    if (!$titleValidation['valid']) {
+        $editError = $titleValidation['message'];
+        $editing_id = $id;
+    } elseif (!$startDateValidation['valid']) {
+        $editError = $startDateValidation['message'];
+        $editing_id = $id;
+    } elseif (!$endDateValidation['valid']) {
+        $editError = $endDateValidation['message'];
+        $editing_id = $id;
+    } elseif ($max_votes < 1) {
+        $editError = 'Maximum votes per user must be at least 1.';
         $editing_id = $id;
     } else {
+        // Sanitize inputs
+        $title = InputValidator::sanitizeString($title);
+        $description = InputValidator::sanitizeString($description);
+        
         $data = compact('title', 'description', 'start_date', 'end_date', 'status', 'max_votes');
         $data['max_votes_per_user'] = $max_votes;
         $result = $electionManager->updateElection($id, $data);

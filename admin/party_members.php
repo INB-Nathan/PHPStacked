@@ -49,7 +49,7 @@ header("X-Frame-Options: DENY");
 header("X-XSS-Protection: 1; mode=block");
 
 // Validate and sanitize party_id
-$party_id = isset($_GET['id']) ? filter_var($_GET['id'], FILTER_VALIDATE_INT) : 0;
+$party_id = InputValidator::validateId($_GET['id'] ?? '') ?: 0;
 if (!$party_id || $party_id <= 0) {
     echo "<div style='color:red;'>Invalid party selected.</div>";
     exit;

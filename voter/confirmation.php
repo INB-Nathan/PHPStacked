@@ -1,5 +1,6 @@
 <?php
 require_once '../includes/autoload.php';
+require_once '../includes/voter_header.php';
 session_start();
 
 // Include security checks
@@ -22,11 +23,11 @@ if (!$userId) {
 }
 
 // Get the election ID from the query string
-$electionId = isset($_GET['election_id']) ? (int)$_GET['election_id'] : 0;
+$electionId = InputValidator::validateId($_GET['election_id'] ?? '');
 
 // Check if the election ID is valid
 if (!$electionId) {
-    header("Location: all_elections.php");
+    header("Location: available_elections.php");
     exit;
 }
 
@@ -36,7 +37,7 @@ $voteManager = new VoteManager($pdo);
 // Verify that the user has actually voted in this election
 if (!$voteManager->hasUserVoted($userId, $electionId)) {
     echo "<div style='color:red;'>No vote record found for this election.</div>";
-    header("Refresh: 3; URL=all_elections.php");
+    header("Refresh: 3; URL=available_elections.php");
     exit;
 }
 
@@ -49,122 +50,60 @@ $electionManager = new ElectionManager($pdo);
 // Get election details
 $election = $electionManager->getById($electionId);
 
+// Get user details if full_name is not in session
+if (empty($_SESSION['full_name'])) {
+    $userManager = new UserManager($pdo);
+    $userDetails = $userManager->getUserById($userId);
+    $_SESSION['full_name'] = $userDetails['full_name'] ?? 'Unknown Voter';
+}
+
+// Format timestamp if receipt exists
+$formattedTimestamp = 'N/A';
+$receiptCode = 'ERROR-GENERATING-CODE';
+$voterName = $_SESSION['full_name'] ?? 'N/A';
+
+if ($receipt && isset($receipt['timestamp'])) {
+    $formattedTimestamp = date('F j, Y \a\t g:i A', strtotime($receipt['timestamp']));
+    $receiptCode = $receipt['receipt_code'] ?? 'ERROR-GENERATING-CODE';
+}
+
 // Set page title
 $pageTitle = "Vote Confirmation - " . ($election['title'] ?? 'Election');
+
+// Generate CSRF token for security
+$csrf_token = $securityManager->generateCSRFToken();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($pageTitle) ?></title>
-    <link rel="stylesheet" href="../css/main.css">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token); ?>">
+    <title><?= $pageTitle ?></title>
+    <link rel="stylesheet" href="../css/admin_header.css">
+    <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/voter.css">
-    <style>
-        .confirmation-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 30px;
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            border-left: 5px solid #4CAF50;
-            margin-top: 30px;
-            text-align: center;
-        }
-        
-        .confirmation-container h2 {
-            color: #4CAF50;
-            margin-top: 0;
-        }
-        
-        .receipt-box {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            margin: 20px 0;
-            text-align: left;
-        }
-        
-        .receipt-item {
-            margin-bottom: 10px;
-        }
-        
-        .receipt-item strong {
-            display: inline-block;
-            width: 150px;
-            font-weight: bold;
-        }
-        
-        .receipt-code {
-            font-family: monospace;
-            font-size: 20px;
-            letter-spacing: 2px;
-            color: #333;
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f5f5f5;
-            border-radius: 4px;
-        }
-        
-        .confirmation-message {
-            margin: 20px 0;
-            line-height: 1.6;
-            color: #555;
-        }
-        
-        .print-button {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #2196F3;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-top: 20px;
-            cursor: pointer;
-        }
-        
-        .home-button {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-top: 20px;
-            margin-left: 10px;
-        }
-        
-        @media print {
-            .no-print {
-                display: none;
-            }
-            
-            body {
-                font-size: 12pt;
-            }
-            
-            .confirmation-container {
-                border: none;
-                padding: 0;
-            }
-            
-            .receipt-box {
-                border: 1px solid #000;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="../css/admin_popup.css">
+    <link rel="stylesheet" href="../css/vote.css">
+    <link rel="stylesheet" href="../css/vote_confirmation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="../js/logout.js" defer></script>
 </head>
 <body>
+    <?php voterHeader(''); ?>
+    
+    <div id="logoutModal">
+        <div id="logoutModalContent">
+            <h3>Are you sure you want to log out?</h3>
+            <form action="../logout.php" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                <button type="submit" class="modal-btn confirm">Continue</button>
+            </form>
+            <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
+        </div>
+    </div>
+    
     <div class="container">
-        <header class="no-print">
-            <h1><?= htmlspecialchars($pageTitle) ?></h1>
-            <nav>
-                <a href="index.php">Dashboard</a> |
-                <a href="all_elections.php">All Elections</a> |
-                <a href="../logout.php">Logout</a>
-            </nav>
-        </header>
         
         <div class="confirmation-container">
             <h2>Your Vote Has Been Recorded</h2>
@@ -179,14 +118,14 @@ $pageTitle = "Vote Confirmation - " . ($election['title'] ?? 'Election');
                     <strong>Election:</strong> <?= htmlspecialchars($election['title'] ?? 'N/A') ?>
                 </div>
                 <div class="receipt-item">
-                    <strong>Date & Time:</strong> <?= htmlspecialchars($receipt['timestamp'] ?? 'N/A') ?>
+                    <strong>Date & Time:</strong> <?= htmlspecialchars($formattedTimestamp) ?>
                 </div>
                 <div class="receipt-item">
-                    <strong>Voter:</strong> <?= htmlspecialchars($_SESSION['full_name'] ?? 'N/A') ?>
+                    <strong>Voter:</strong> <?= htmlspecialchars($voterName) ?>
                 </div>
                 
                 <div class="receipt-code">
-                    <?= htmlspecialchars($receipt['receipt_code'] ?? 'ERROR-GENERATING-CODE') ?>
+                    <?= htmlspecialchars($receiptCode) ?>
                 </div>
                 
                 <div class="receipt-item">
@@ -195,10 +134,49 @@ $pageTitle = "Vote Confirmation - " . ($election['title'] ?? 'Election');
             </div>
             
             <div class="no-print">
-                <button class="print-button" onclick="window.print();">Print Receipt</button>
+                <button class="print-button" onclick="handlePrint();">Print Receipt</button>
                 <a href="index.php" class="home-button">Return to Dashboard</a>
             </div>
         </div>
     </div>
+    
+    <script>
+        function handlePrint() {
+            try {
+                const button = document.querySelector('.print-button');
+                const originalText = button.textContent;
+                button.textContent = 'Printing...';
+                button.style.backgroundColor = '#1976D2';
+                
+                if (typeof window.print !== 'function') {
+                    alert('Printing is not supported in this browser. Please save the page or take a screenshot.');
+                    button.textContent = originalText;
+                    button.style.backgroundColor = '#2196F3';
+                    return;
+                }
+                
+                setTimeout(function() {
+                    window.print();
+                    setTimeout(function() {
+                        button.textContent = originalText;
+                        button.style.backgroundColor = '#2196F3';
+                    }, 1000);
+                }, 100);
+            } catch (error) {
+                console.error('Print failed:', error);
+                alert('Unable to print. Please use your browser\'s print function (Ctrl+P or Cmd+P) or save the page.');
+                const button = document.querySelector('.print-button');
+                button.textContent = 'Print Receipt';
+                button.style.backgroundColor = '#2196F3';
+            }
+        }
+        
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                handlePrint();
+            }
+        });
+    </script>
 </body>
 </html>

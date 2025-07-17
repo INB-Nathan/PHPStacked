@@ -29,30 +29,31 @@ class UserManager {
         bool $isActive = true
     ): bool|string {
         try {
-            // Basic sanitization and validation
-            if (empty($username) || empty($email) || empty($password) || empty($fullName)) {
-                return "All fields are required.";
+            // Use InputValidator for comprehensive validation
+            $usernameValidation = InputValidator::validateUsername($username);
+            if (!$usernameValidation['valid']) {
+                return $usernameValidation['message'];
             }
             
-            if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
-                return "Username can only contain letters, numbers, and underscores.";
+            $emailValidation = InputValidator::validateEmail($email);
+            if (!$emailValidation['valid']) {
+                return $emailValidation['message'];
             }
             
-            if (!preg_match('/^[a-zA-Z0-9_ ]+$/', $fullName)) {
-                return "Name contains invalid characters.";
+            $passwordValidation = InputValidator::validatePassword($password);
+            if (!$passwordValidation['valid']) {
+                return $passwordValidation['message'];
             }
             
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                return "Please enter a valid email address.";
+            $nameValidation = InputValidator::validateName($fullName);
+            if (!$nameValidation['valid']) {
+                return $nameValidation['message'];
             }
             
-            if (strlen($username) < 3) {
-                return "Username must be at least 3 characters.";
-            }
-            
-            if (strlen($password) < 6) {
-                return "Password must be at least 6 characters.";
-            }
+            // Sanitize inputs
+            $username = InputValidator::sanitizeString($username);
+            $email = InputValidator::sanitizeString($email);
+            $fullName = InputValidator::sanitizeString($fullName);
             
             // Check if username already exists
             $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
@@ -265,4 +266,3 @@ class UserManager {
         }
     }
 }
-?>
