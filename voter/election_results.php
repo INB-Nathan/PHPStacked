@@ -3,6 +3,12 @@ require_once '../includes/autoload.php';
 require_once '../includes/voter_header.php';
 session_start();
 
+// Include security checks
+$securityManager = new SecurityManager($pdo);
+$securityManager->secureSession();
+$securityManager->checkSessionTimeout();
+$csrf_token = $securityManager->generateCSRFToken();
+
 // Kung hindi naka-login or hindi voter, redirect sa login page
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'voter') {
     header("Location: ../login.php");
@@ -39,7 +45,6 @@ foreach ($eligibleElections as $election) {
         $completedElections[] = $election;
     }
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -49,6 +54,8 @@ foreach ($eligibleElections as $election) {
     <link rel="stylesheet" href="../css/admin_header.css">
     <link rel="stylesheet" href="../css/admin_index.css">
     <link rel="stylesheet" href="../css/voter_view_election.css">
+    <link rel="stylesheet" href="../css/admin_popup.css">
+    <script src="../js/logout.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
@@ -144,6 +151,18 @@ foreach ($eligibleElections as $election) {
             <p>Completed elections will be shown here after they've ended.</p>
         </div>
     <?php endif; ?>
+    </div>
+    
+    <!-- Logout Modal -->
+    <div id="logoutModal">
+        <div id="logoutModalContent">
+            <h3>Are you sure you want to log out?</h3>
+            <form action="../logout.php" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                <button type="submit" class="modal-btn confirm">Continue</button>
+            </form>
+            <button class="modal-btn cancel" id="cancelLogoutBtn" type="button">Cancel</button>
+        </div>
     </div>
 </body>
 </html>
