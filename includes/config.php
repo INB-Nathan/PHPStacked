@@ -69,4 +69,3 @@ return [
         'lockout_time' => 900, // 15 minutes in seconds
     ]
 ];
-?>

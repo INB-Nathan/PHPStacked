@@ -25,4 +25,3 @@ try {
     error_log("Database connection failed: " . $e->getMessage());
     die("Database connection failed. Please contact the administrator.");
 }
-?>
