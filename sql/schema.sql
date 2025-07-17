@@ -85,6 +85,33 @@ CREATE TABLE voter_elections (
     FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE EVENT update_election_status
+ON SCHEDULE EVERY 1 MINUTE
+STARTS CURRENT_TIMESTAMP
+DO
+BEGIN
+    UPDATE elections 
+    SET status = 'active', 
+        updated_at = CURRENT_TIMESTAMP
+    WHERE status = 'upcoming' 
+    AND NOW() >= start_date 
+    AND NOW() < end_date;
+    
+    UPDATE elections 
+    SET status = 'completed', 
+        updated_at = CURRENT_TIMESTAMP
+    WHERE status IN ('upcoming', 'active') 
+    AND NOW() >= end_date;
+    
+    UPDATE elections 
+    SET status = 'upcoming', 
+        updated_at = CURRENT_TIMESTAMP
+    WHERE status = 'active' 
+    AND NOW() < start_date;
+END;
+
+SET GLOBAL event_scheduler = ON; 
+
 -- Seed data
 INSERT INTO parties (name, description)
 VALUES ('Independent', 'Independent Candidate');
