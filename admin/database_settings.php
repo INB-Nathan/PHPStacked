@@ -94,6 +94,7 @@ $counts = $dbManager->getRecordCounts();
     <link rel="stylesheet" href="../css/admin_database.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="../js/logout.js" defer></script>
+    <script src="../js/database_settings.js" defer></script>
 </head>
 <body>
     <?php adminHeader('database', $csrf_token); ?>
