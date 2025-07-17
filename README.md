@@ -65,8 +65,7 @@ PHPStacked/
 ├── index.php               # Main entry point
 ├── login.php               # Login interface
 ├── logout.php              # Logout handler
-├── .htaccess               # Apache configuration
-└── security_report.md      # Security documentation
+└── .htaccess               # Apache configuration
 ```
 
 ---
