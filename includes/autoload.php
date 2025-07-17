@@ -51,8 +51,3 @@ foreach ($classFiles as $file) {
         trigger_error("Missing required class file: {$file}", E_USER_WARNING);
     }
 }
-
-if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) {
-    $electionManager = new ElectionManager($pdo);
-    $electionManager->updateElectionStatuses();
-}
