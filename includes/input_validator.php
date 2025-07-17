@@ -198,4 +198,3 @@ class InputValidator {
         return $data;
     }
 }
-?>

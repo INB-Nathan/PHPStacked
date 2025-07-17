@@ -36,4 +36,3 @@ class PositionManager {
         return $stmt->execute([$id]);
     }
 }
-?>

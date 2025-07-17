@@ -53,4 +53,3 @@ foreach ($classFiles as $file) {
         trigger_error("Missing required class file: {$file}", E_USER_WARNING);
     }
 }
-?>

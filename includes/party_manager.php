@@ -36,4 +36,3 @@ class PartyManager {
         return $stmt->execute([$id]);
     }
 }
-?>

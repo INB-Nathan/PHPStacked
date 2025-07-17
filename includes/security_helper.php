@@ -163,4 +163,3 @@ class SecurityHelper {
         $_SESSION[$sessionKey] = $data;
     }
 }
-?>

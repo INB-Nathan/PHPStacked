@@ -65,4 +65,3 @@ header("Expires: 0");
 
 // Remove X-Powered-By header if sent by PHP
 header_remove("X-Powered-By");
-?>
