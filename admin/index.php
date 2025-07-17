@@ -25,6 +25,7 @@ if (empty($_SESSION['loggedin']) || $_SESSION['user_type'] !== 'admin') {
     <link rel="stylesheet" href="../css/admin_popup.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="../js/logout.js" defer></script>
+    <script src="../js/dashboard.js"></script>
 </head>
 <body>
     <?php adminHeader('dashboard', $csrf_token); ?>
@@ -35,27 +36,27 @@ if (empty($_SESSION['loggedin']) || $_SESSION['user_type'] !== 'admin') {
     </p>
     <div class="dashboard-container">
         <ul class="dashboard-list">
-            <li onclick="location.href='voters.php'">
+            <li data-href="voters.php">
                 <i class="fa-solid fa-users"></i>
                 <span>Voters Management</span>
             </li>
-            <li onclick="location.href='party_position.php'">
+            <li data-href="party_position.php">
                 <i class="fa-solid fa-flag"></i>
                 <span>Party and Position Management</span>
             </li>
-            <li onclick="location.href='candidates.php'">
+            <li data-href="candidates.php">
                 <i class="fa-solid fa-user-tie"></i>
                 <span>Candidate Management</span>
             </li>
-            <li onclick="location.href='statistics.php'">
+            <li data-href="statistics.php">
                 <i class="fa-solid fa-chart-bar"></i>
                 <span>Vote Statistics</span>
             </li>
-            <li onclick="location.href='election.php'">
+            <li data-href="election.php">
                 <i class="fa-solid fa-book-open"></i>
                 <span>Elections</span>
             </li>
-            <li onclick="location.href='database_settings.php'">
+            <li data-href="database_settings.php">
                 <i class="fa-solid fa-database"></i>
                 <span>Database Settings</span>
             </li>
