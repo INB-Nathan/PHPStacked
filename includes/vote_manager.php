@@ -19,41 +19,49 @@ class VoteManager {
         }
     }
 
-    // first checks your user id and cross references it to eligible election condition
-    // 1st condition is that you are given access to the election by the admin
-    // 2nd condition is that the election is already ongoing or upcoming by 24 hours.
-    // the upcoming by 24 hours is still upcoming, and voters cannot vote on that election yet.
+    /**
+     * Gets all elections the voter is eligible for.
+     * 
+     * Logic:
+     * 1. Checks if the user is assigned to the election via voter_elections (admin assignment).
+     * 2. Includes elections with status 'active' or 'upcoming'.
+     *    - 'active': Election is ongoing.
+     *    - 'upcoming': Election is scheduled for the future.
+     * 3. Calculates time until start for upcoming elections.
+     * 4. Adds a flag if the user has already voted in each election.
+     * 
+     * Returns an array of eligible elections with voting status and time info.
+     */
     public function getEligibleElections(int $userId): array {
-        // try catch lang for error exception
-        try{
-            $now = date("Y-m-d H:i:s");
-            $upcoming = date("Y-m-d H:i:s", strtotime("+24 hours"));
-            
-            // Updated query to include all elections (active, upcoming, and completed)
-            $stmt = $this->pdo->prepare("SELECT e.id, e.title, e.description, e.start_date, e.end_date, e.status, e.max_votes_per_user,  CASE WHEN e.end_date < NOW() THEN 'completed' WHEN e.start_date > NOW() THEN 'upcoming' ELSE 'active' END AS display_status FROM elections e INNER JOIN voter_elections ve ON e.id = ve.election_id WHERE ve.voter_id = ? AND ((e.status = 'active' AND e.start_date <= ? AND e.end_date >= ?) OR (e.status = 'active' AND e.start_date > ? AND e.start_date <= ?) OR (e.status = 'completed' OR (e.status = 'active' AND e.end_date < ?))) ORDER BY CASE WHEN e.end_date >= ? THEN 0 ELSE 1 END, e.start_date ASC");
-            $stmt->execute([$userId, $now, $now, $now, $upcoming, $now, $now]);
-            $elections = $stmt -> fetchAll(PDO::FETCH_ASSOC);
-            
-            // foreach loop para iprocess each election sa array.
-            // checks muna kung ung user has voted in a specific election by using hasUserVoted.
-            // then mag assign siya ng result sa has_voted
-            // if ung election naman display status niya is upcoming
-            // icacalculate niya kung gano katagal nalang ung time bago mag start ung election
-            // after nun mag rereturn na siya ng updated array of elections.
-            foreach($elections as &$election){
-                $election['has_voted'] = $this->hasUserVoted($userId, $election['id']);
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT e.id, e.title, e.description, e.start_date, e.end_date, e.status, e.max_votes_per_user,
+                    CASE
+                        WHEN e.end_date < NOW() THEN 'completed'
+                        WHEN e.start_date > NOW() THEN 'upcoming'
+                        ELSE 'active'
+                    END AS display_status
+                FROM elections e
+                INNER JOIN voter_elections ve ON e.id = ve.election_id
+                WHERE ve.voter_id = ?
+                AND e.status IN ('active', 'upcoming')
+                ORDER BY e.start_date ASC
+            ");
+            $stmt->execute([$userId]);
+            $elections = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            // For each election, check if user has voted and calculate time until start if upcoming
+            foreach ($elections as &$election) {
+                $election['has_voted'] = $this->hasUserVoted($userId, $election['id']);
                 if ($election['display_status'] === 'upcoming') {
                     $startTime = strtotime($election['start_date']);
                     $currentTime = time();
                     $timeUntilStart = $startTime - $currentTime;
-                    
-                    $hours = floor($timeUntilStart /3600);
-                    $minutes = floor(($timeUntilStart % 3600)/60);
-
+                    $hours = floor($timeUntilStart / 3600);
+                    $minutes = floor(($timeUntilStart % 3600) / 60);
                     $election['time_until_start'] = "{$hours}h {$minutes}m";
                 }
-            } 
+            }
             return $elections;
         } catch (PDOException $e) {
             error_log("Error getting eligible elections: " . $e->getMessage());

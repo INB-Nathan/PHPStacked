@@ -223,12 +223,11 @@ unset($voter);
                         <?php endif; ?>
                     </div>
                     
-                    <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-top: 20px; align-items: baseline;">
                         <button type="submit" name="update_permissions" style="flex: 1; margin-right: 10px;">Update Permissions</button>
                         <a href="voters.php" style="flex: 1; display: block; background: #6c757d; color: white; text-align: center; 
                                                   padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                            Cancel
-                        </a>
+                            Cancel</a>
                     </div>
                 </form>
             </div>
