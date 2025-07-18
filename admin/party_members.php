@@ -7,6 +7,10 @@ $securityManager = new SecurityManager($pdo);
 $securityManager->secureSession();
 $securityManager->checkSessionTimeout('../login.php');
 
+// Election Manager
+$electionManager = new ElectionManager($pdo);
+$electionManager->updateElectionStatuses();
+
 // if statement lang para iensure na admins lang ung pwede mag acess ng page
 // ung first conditional is whether na ugn user is logged in and the next conditional is whether their user type is set to admin
 // if both mag fail, pupunta siya http 403 forbidden. ng error message na yon, the script is exited using exit

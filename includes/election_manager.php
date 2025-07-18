@@ -132,4 +132,24 @@ class ElectionManager {
             return [];
         }
     }
+
+    public function updateElectionStatuses(): int|string {
+        try {
+            $sql = "
+                UPDATE elections
+                SET status = CASE
+                    WHEN NOW() >= start_date AND NOW() < end_date THEN 'active'
+                    WHEN NOW() >= end_date THEN 'completed'
+                    WHEN NOW() < start_date THEN 'upcoming'
+                    ELSE status
+                END,
+                updated_at = CURRENT_TIMESTAMP
+                WHERE status IN ('upcoming', 'active');
+            ";
+
+            return $this->pdo->exec($sql);
+        } catch (PDOException $e) {
+            return 'DB Error (updateElectionStatuses): ' . $e->getMessage();
+        }
+    }
 }

@@ -309,6 +309,10 @@ $securityManager->checkSessionTimeout();
 $securityManager->secureSession();
 
 $csrf_token = $securityManager->generateCSRFToken();
+
+// Election Manager
+$electionManager = new ElectionManager($pdo);
+$electionManager->updateElectionStatuses();
 ?>
 
 <?php

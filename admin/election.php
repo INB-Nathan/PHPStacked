@@ -9,6 +9,10 @@ session_start();
 $securityManager->checkSessionTimeout();
 $csrf_token = $securityManager->generateCSRFToken();
 
+// Election Manager
+$electionManager = new ElectionManager($pdo);
+$electionManager->updateElectionStatuses();
+
 if (empty($_SESSION['loggedin']) || ($_SESSION['user_type'] ?? '') !== 'admin') {
     header('Location: ../login.php');
     exit;
